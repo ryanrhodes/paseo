@@ -99,7 +99,7 @@ const variants = {
 variants.personal = {
   name: "Paseo R",
   packageId: "com.ryanrhodes.paseo",
-  // Blue instead of black, to tell it apart from the App Store app on the home screen.
+  // Gray instead of black, to tell it apart from the App Store app on the home screen.
   icon: "./assets/images/icon-personal.png",
   appleTeamId: "GD7EU924Y9",
 };
