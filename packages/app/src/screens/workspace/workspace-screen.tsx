@@ -91,6 +91,7 @@ import { traceInstant } from "@/performance/native-trace";
 import { useSessionStore, type WorkspaceDescriptor } from "@/stores/session-store";
 import {
   canDismissPaneInLayout,
+  collectAllPanes,
   collectAllTabs,
   DEFAULT_PANE_ID,
   findPaneById,
@@ -1050,6 +1051,45 @@ function DesktopCenterColumnChrome({
   );
 }
 
+// Fork: on native, SplitContainer makes the chat jump back up when the docked sidebar resizes the
+// pane, so keep the stock single-pane view until the layout really has two visible panes.
+function useCanRenderPaneSplits(
+  workspaceLayout: WorkspaceLayout | null,
+  explorerSidebarPaneId: string | null,
+): boolean {
+  return useMemo(() => {
+    if (!supportsDesktopPaneSplits()) return false;
+    if (isWeb) return true;
+    if (!workspaceLayout) return false;
+    const visibleMainPanes = collectAllPanes(workspaceLayout.root).filter(
+      (pane) => pane.hidden !== true && pane.id !== explorerSidebarPaneId,
+    );
+    return visibleMainPanes.length > 1;
+  }, [explorerSidebarPaneId, workspaceLayout]);
+}
+
+type SplitPosition = "left" | "right" | "top" | "bottom";
+
+// Fork: the native single-pane tab row still offers splits; the first split switches to SplitContainer.
+function useFallbackSplitProps(
+  focusedPaneId: string | undefined,
+  workspaceLayout: WorkspaceLayout | null,
+  createEmptySplit: (input: { targetPaneId: string; position: SplitPosition }) => void,
+) {
+  const targetPaneId = focusedPaneId ?? workspaceLayout?.focusedPaneId ?? undefined;
+  return useMemo(() => {
+    if (!isNative || !targetPaneId) return {};
+    const split = (position: SplitPosition) => () => createEmptySplit({ targetPaneId, position });
+    return {
+      showPaneSplitActions: true,
+      onSplitRight: split("right"),
+      onSplitDown: split("bottom"),
+      onSplitLeft: split("left"),
+      onSplitUp: split("top"),
+    };
+  }, [createEmptySplit, targetPaneId]);
+}
+
 function WorkspaceScreenContent({
   serverId,
   workspaceId,
@@ -1062,7 +1102,6 @@ function WorkspaceScreenContent({
   const toast = useToast();
   const isMobile = useIsCompactFormFactor();
   const workspacePanelActive = usePanelStore((state) => state.mobilePanel.target === "agent");
-  const canRenderDesktopPaneSplits = supportsDesktopPaneSplits();
   const layoutMode = useWorkspaceLayoutStore((state) => state.layoutMode);
   const hasMacTrafficLights = useHasWindowChromeObstruction("top-left");
   const explorerToggleOwner = resolveWorkspaceExplorerToggleOwner({
@@ -1347,6 +1386,7 @@ function WorkspaceScreenContent({
   const paneFocusSuspended = useWorkspaceLayoutStore((state) =>
     persistenceKey ? selectPaneFocusSuspended(state, persistenceKey) : false,
   );
+  const canRenderDesktopPaneSplits = useCanRenderPaneSplits(workspaceLayout, explorerSidebarPaneId);
   const lastMainPaneRef = useLastMainPane({
     workspaceKey: persistenceKey,
     layout: workspaceLayout,
@@ -3357,6 +3397,12 @@ function WorkspaceScreenContent({
     ],
   );
   const focusedPaneIdOrUndefined = useMemo(() => focusedPaneId ?? undefined, [focusedPaneId]);
+  const fallbackSplitProps = useFallbackSplitProps(
+    focusedPaneIdOrUndefined,
+    workspaceLayout,
+    handleCreateEmptySplit,
+  );
+
   const desktopFocusModeEnabled = useMemo(
     () => isFocusModeEnabled && !isMobile,
     [isFocusModeEnabled, isMobile],
@@ -3717,6 +3763,7 @@ function WorkspaceScreenContent({
                 onCloseOtherTabs={handleCloseOtherTabs}
                 onCreateNewTab={handleCreateNewTab}
                 onReorderTabs={handleReorderTabsInFocusedPane}
+                {...fallbackSplitProps}
                 focusModeEnabled={desktopFocusModeEnabled}
                 onExitFocusMode={toggleFocusMode}
               />
