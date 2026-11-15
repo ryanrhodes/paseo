@@ -77,6 +77,8 @@ interface SplitContainerProps {
    * place of its tab rail; above a split it carries workspace controls only.
    */
   renderCompactHeader: (paneTabs: WorkspaceCompactHeaderTabs | null) => ReactNode;
+  /** Fork: renders the tab-count switcher for a pane's tab row on native wide layouts. */
+  renderTabSwitcher?: (paneTabs: WorkspaceCompactHeaderTabs) => ReactNode;
   workspaceKey: string;
   normalizedServerId: string;
   normalizedWorkspaceId: string;
@@ -195,6 +197,7 @@ export function SplitContainer({
   onExitFocusMode,
   renderMainHeader,
   renderCompactHeader,
+  renderTabSwitcher,
 }: SplitContainerProps) {
   const inheritedWindowChromeCorners = useWindowChromeCorners();
   const windowChromeCorners = inheritedWindowChromeCorners;
@@ -332,6 +335,7 @@ export function SplitContainer({
                 onExitFocusMode={onExitFocusMode}
                 renderMainHeader={renderMainHeader}
                 renderCompactHeader={renderCompactHeader}
+                renderTabSwitcher={renderTabSwitcher}
               />
             ) : null}
           </View>
@@ -468,6 +472,7 @@ function SplitNodeView({
   ownsWorkspaceHeader,
   renderMainHeader,
   renderCompactHeader,
+  renderTabSwitcher,
 }: SplitNodeViewProps) {
   const [groupContainerSize, setGroupContainerSize] = useState(0);
   const groupId = node.kind === "group" ? node.group.id : null;
@@ -559,6 +564,7 @@ function SplitNodeView({
             ownsWorkspaceHeader={ownsWorkspaceHeader}
             renderMainHeader={renderMainHeader}
             renderCompactHeader={renderCompactHeader}
+            renderTabSwitcher={renderTabSwitcher}
           />
         </WindowChromeRegion>
       </RetainedPanel>
@@ -629,6 +635,7 @@ function SplitNodeView({
               ownsWorkspaceHeader={ownsWorkspaceHeader}
               renderMainHeader={renderMainHeader}
               renderCompactHeader={renderCompactHeader}
+              renderTabSwitcher={renderTabSwitcher}
             />
           </SplitGroupChild>
           {index < node.group.children.length - 1 &&
@@ -692,6 +699,7 @@ const SplitPaneView = memo(function SplitPaneView({
   ownsWorkspaceHeader,
   renderMainHeader,
   renderCompactHeader,
+  renderTabSwitcher,
 }: SplitPaneViewProps) {
   recordRenderProfileReasons(`SplitPaneView:${pane.id}`, ["render"]);
   const paneRef = useRef<View | null>(null);
@@ -821,6 +829,17 @@ const SplitPaneView = memo(function SplitPaneView({
       handleCloseOtherTabs,
     ],
   );
+  const paneTabSwitcher = useMemo(
+    () =>
+      isNative && renderTabSwitcher
+        ? renderTabSwitcher({
+            tabs: paneTabs,
+            activeTabKey: activeTabDescriptor?.key ?? "",
+            actions: compactHeaderActions,
+          })
+        : null,
+    [activeTabDescriptor?.key, compactHeaderActions, paneTabs, renderTabSwitcher],
+  );
   const createNewTab = useCallback(() => onCreateNewTab({ paneId }), [onCreateNewTab, paneId]);
   useWorkspaceNewTabKeyboardAction({
     handlerName: "workspace-chrome-new-tab",
@@ -907,6 +926,7 @@ const SplitPaneView = memo(function SplitPaneView({
                 onSplitUp={handleSplitUp}
                 paneMoveTargets={paneMoveTargets}
                 onMoveTabToPane={onMoveTabToPane}
+                tabSwitcher={paneTabSwitcher}
                 focusModeEnabled={Boolean(focusModeEnabled)}
                 onExitFocusMode={onExitFocusMode}
               />

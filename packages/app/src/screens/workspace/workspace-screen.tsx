@@ -3609,6 +3609,29 @@ function WorkspaceScreenContent({
     [compactWorkspaceHeader],
   );
   const fullWorkspaceActions = renderCompactWorkspaceHeader(workspaceCompactHeaderTabs, true);
+  // Fork: the single-pane wide row also shows the compact tab-count switcher on native.
+  const fallbackTabSwitcher = useMemo(
+    () =>
+      isNative
+        ? renderWorkspaceTabSwitcher({
+            tabs,
+            activeTabKey,
+            actions: {
+              closeAbove: handleCloseTabsToLeft,
+              closeBelow: handleCloseTabsToRight,
+              closeOthers: handleCloseOtherTabs,
+            },
+          })
+        : null,
+    [
+      activeTabKey,
+      handleCloseOtherTabs,
+      handleCloseTabsToLeft,
+      handleCloseTabsToRight,
+      renderWorkspaceTabSwitcher,
+      tabs,
+    ],
+  );
   const desktopSplitContent = useMemo(() => {
     if (!canRenderDesktopPaneSplits || !workspaceLayout || !persistenceKey) {
       return null;
@@ -3618,6 +3641,7 @@ function WorkspaceScreenContent({
         layout={workspaceLayout}
         renderMainHeader={renderWorkspaceScreenHeader}
         renderCompactHeader={renderCompactWorkspaceHeader}
+        renderTabSwitcher={renderWorkspaceTabSwitcher}
         focusModeEnabled={desktopFocusModeEnabled}
         onExitFocusMode={toggleFocusMode}
         workspaceKey={persistenceKey}
@@ -3651,6 +3675,7 @@ function WorkspaceScreenContent({
       />
     );
   }, [
+    renderWorkspaceTabSwitcher,
     canRenderDesktopPaneSplits,
     workspaceLayout,
     renderWorkspaceScreenHeader,
@@ -3764,6 +3789,7 @@ function WorkspaceScreenContent({
                 onCreateNewTab={handleCreateNewTab}
                 onReorderTabs={handleReorderTabsInFocusedPane}
                 {...fallbackSplitProps}
+                tabSwitcher={fallbackTabSwitcher}
                 focusModeEnabled={desktopFocusModeEnabled}
                 onExitFocusMode={toggleFocusMode}
               />

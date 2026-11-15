@@ -295,6 +295,7 @@ function WorkspacePaneToolbarActions({
   onSplitLeft,
   onSplitUp,
   onTogglePaneMaximized,
+  tabSwitcher,
 }: {
   panePanelKinds: PanePanelKinds;
   host: PaneHost;
@@ -311,6 +312,7 @@ function WorkspacePaneToolbarActions({
   onSplitLeft?: () => void;
   onSplitUp?: () => void;
   onTogglePaneMaximized?: () => void;
+  tabSwitcher?: React.ReactNode;
 }) {
   const { t } = useTranslation();
   const splitRightKeys = useShortcutKeys("workspace-pane-split-right");
@@ -333,10 +335,13 @@ function WorkspacePaneToolbarActions({
     [splitDownKeys],
   );
   const maximizeActionVisible = showMaximizeAction && Boolean(onTogglePaneMaximized);
-  if (!showNewTabButton && !splitActionsVisible && !maximizeActionVisible) return null;
+  if (!showNewTabButton && !splitActionsVisible && !maximizeActionVisible && !tabSwitcher) {
+    return null;
+  }
 
   return (
     <ToolbarControls style={styles.paneSplitActions}>
+      {tabSwitcher}
       {showNewTabButton ? (
         <WorkspaceNewTabButton
           panePanelKinds={panePanelKinds}
@@ -607,6 +612,8 @@ export interface WorkspaceDesktopTabsRowProps {
   /** Adjacent panes this pane's tabs can be moved into from the tab menu. */
   paneMoveTargets?: readonly PaneMoveTarget[];
   onMoveTabToPane?: (tabId: string, paneId: string) => void;
+  /** Fork: the compact tab-count switcher, shown in the toolbar on native wide layouts. */
+  tabSwitcher?: React.ReactNode;
   focusModeEnabled: boolean;
   onExitFocusMode: () => void;
 }
@@ -1151,6 +1158,7 @@ function ResolvedWorkspaceDesktopTabsRow({
   onSplitUp,
   paneMoveTargets,
   onMoveTabToPane,
+  tabSwitcher,
   focusModeEnabled,
   onExitFocusMode,
 }: ResolvedWorkspaceDesktopTabsRowProps) {
@@ -1564,6 +1572,7 @@ function ResolvedWorkspaceDesktopTabsRow({
         onSplitLeft={onSplitLeft}
         onSplitUp={onSplitUp}
         onTogglePaneMaximized={onTogglePaneMaximized}
+        tabSwitcher={tabSwitcher}
       />
     </View>
   );
