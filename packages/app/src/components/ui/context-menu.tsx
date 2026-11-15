@@ -1,5 +1,7 @@
 import {
   useCallback,
+  useEffect,
+  useRef,
   type ComponentProps,
   type PropsWithChildren,
   type ReactElement,
@@ -26,6 +28,7 @@ import {
   type MenuTriggerState,
 } from "@/components/ui/menu";
 import { PressHighlight } from "@/components/ui/press-highlight";
+import { registerSecondaryClickTarget } from "@/components/ui/secondary-click-registry";
 import type { PressHighlightProps } from "@/components/ui/press-highlight.types";
 
 /**
@@ -141,8 +144,19 @@ export function ContextMenuTrigger({
     [ctx, disabled, shouldEnableOnThisPlatform],
   );
 
+  // Fork: iPadOS trackpad two-finger click / mouse right-click opens the menu like a long-press.
+  const secondaryClickNodeRef = useRef<View | null>(null);
+  useEffect(() => {
+    if (!isNative || !shouldEnableOnThisPlatform || disabled) return;
+    return registerSecondaryClickTarget({
+      getNode: () => secondaryClickNodeRef.current,
+      open: openAtEvent,
+    });
+  }, [disabled, openAtEvent, shouldEnableOnThisPlatform]);
+
   const handleRef = useCallback(
     (node: View | null) => {
+      secondaryClickNodeRef.current = node;
       assignRef(ctx.triggerRef, node);
       assignRef(triggerRef, node);
     },
