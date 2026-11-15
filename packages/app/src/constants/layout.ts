@@ -1,6 +1,5 @@
 import { useUnistyles } from "react-native-unistyles";
 import { bySizing, TOUCH_TARGET } from "@/components/ui/control-sizing";
-import { isWeb } from "@/constants/platform";
 
 export const FOOTER_HEIGHT = 75;
 
@@ -53,9 +52,10 @@ export function useIsCompactFormFactor(): boolean {
   return isCompactBreakpoint(rt.breakpoint);
 }
 
-// SplitContainer relies on dnd-kit and DOM-backed accessibility helpers.
-// Keep that capability distinct from desktop-width layout so touch tablets
-// can use the desktop shell without entering web-only code paths.
+// Fork change: split panes on native too (iPad, unfolded iPhone Duo). Drag-and-drop between
+// panes stays web-only (split-drop-zone.native.tsx renders nothing); on native, panes are
+// created and managed from the tab and header menus, and focused by touch.
+// Splits still only render at non-compact widths; callers gate on the compact form factor.
 export function supportsDesktopPaneSplits(): boolean {
-  return isWeb;
+  return true;
 }

@@ -16,6 +16,7 @@ import { useFilePanelOpenWithMenu } from "@/file-panels";
 import { MobileTabTrailingAccessory } from "@/screens/workspace/workspace-tab-trailing-accessory";
 import {
   buildWorkspaceTabMenuEntries,
+  moveWorkspaceTab,
   type WorkspaceTabMenuLabels,
 } from "@/screens/workspace/workspace-tab-menu";
 import type { WorkspaceTabDescriptor } from "@/screens/workspace/workspace-tabs-types";
@@ -143,6 +144,7 @@ interface MobileWorkspaceTabSwitcherProps {
   onCloseTabsAbove: (tabId: string) => Promise<void> | void;
   onCloseTabsBelow: (tabId: string) => Promise<void> | void;
   onCloseOtherTabs: (tabId: string) => Promise<void> | void;
+  onReorderTabs?: (nextTabs: WorkspaceTabDescriptor[], paneId?: string) => void;
 }
 
 function MobileWorkspaceTabOption({
@@ -164,6 +166,7 @@ function MobileWorkspaceTabOption({
   onCloseTabsAbove,
   onCloseTabsBelow,
   onCloseOtherTabs,
+  onMoveTab,
 }: {
   tab: WorkspaceTabDescriptor;
   tabIndex: number;
@@ -183,6 +186,7 @@ function MobileWorkspaceTabOption({
   onCloseTabsAbove: (tabId: string) => Promise<void> | void;
   onCloseTabsBelow: (tabId: string) => Promise<void> | void;
   onCloseOtherTabs: (tabId: string) => Promise<void> | void;
+  onMoveTab?: (tabId: string, toIndex: number) => void;
 }) {
   const { t } = useTranslation();
   const tabMenuLabels = useMemo<WorkspaceTabMenuLabels>(
@@ -197,6 +201,10 @@ function MobileWorkspaceTabOption({
       closeLeft: t("workspace.tabs.menu.closeLeft"),
       closeRight: t("workspace.tabs.menu.closeRight"),
       closeOthers: t("workspace.tabs.menu.closeOthers"),
+      moveLeft: t("workspace.tabs.menu.moveLeft"),
+      moveRight: t("workspace.tabs.menu.moveRight"),
+      moveUp: t("workspace.tabs.menu.moveUp"),
+      moveDown: t("workspace.tabs.menu.moveDown"),
       reloadAgent: t("workspace.tabs.menu.reloadAgent"),
       reloadAgentTooltip: t("workspace.tabs.menu.reloadAgentTooltip"),
       close: t("workspace.tabs.menu.close"),
@@ -220,6 +228,7 @@ function MobileWorkspaceTabOption({
     onCloseTabsBefore: onCloseTabsAbove,
     onCloseTabsAfter: onCloseTabsBelow,
     onCloseOtherTabs,
+    onMoveTab,
     labels: tabMenuLabels,
   });
 
@@ -298,8 +307,19 @@ export const MobileWorkspaceTabSwitcher = memo(function MobileWorkspaceTabSwitch
   onCloseTabsAbove,
   onCloseTabsBelow,
   onCloseOtherTabs,
+  onReorderTabs,
 }: MobileWorkspaceTabSwitcherProps) {
   const { t } = useTranslation();
+  const handleMoveTab = useMemo(
+    () =>
+      onReorderTabs
+        ? (tabId: string, toIndex: number) => {
+            const next = moveWorkspaceTab(tabs, tabId, toIndex);
+            if (next) onReorderTabs(next, paneId);
+          }
+        : undefined,
+    [onReorderTabs, paneId, tabs],
+  );
   const tabFallbackLabels = useMemo(
     () => ({
       newTab: t("workspace.tabs.actions.newTab"),
@@ -420,10 +440,12 @@ export const MobileWorkspaceTabSwitcher = memo(function MobileWorkspaceTabSwitch
           onCloseTabsAbove={onCloseTabsAbove}
           onCloseTabsBelow={onCloseTabsBelow}
           onCloseOtherTabs={onCloseOtherTabs}
+          onMoveTab={handleMoveTab}
         />
       );
     },
     [
+      handleMoveTab,
       tabByKey,
       tabIndexByKey,
       tabs.length,

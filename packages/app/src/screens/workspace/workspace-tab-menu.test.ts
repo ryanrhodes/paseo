@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   buildWorkspaceDesktopTabActions,
   buildWorkspaceTabMenuEntries,
+  moveWorkspaceTab,
 } from "@/screens/workspace/workspace-tab-menu";
 import type { WorkspaceTabDescriptor } from "@/screens/workspace/workspace-tabs-types";
 
@@ -365,5 +366,67 @@ describe("buildWorkspaceTabMenuEntries", () => {
       .find((entry) => entry.kind === "separator");
     expect(agentSeparator?.key).toBe("rename-separator");
     expect(terminalSeparator?.key).toBe("rename-separator");
+  });
+});
+
+describe("tab move entries", () => {
+  function build(
+    surface: "desktop" | "mobile",
+    index: number,
+    tabCount: number,
+    onMoveTab?: (id: string, to: number) => void,
+  ) {
+    const noop = vi.fn();
+    return buildWorkspaceTabMenuEntries({
+      surface,
+      tab: createAgentTab(),
+      index,
+      tabCount,
+      menuTestIDBase: "menu",
+      onCopyResumeCommand: noop,
+      onCopyAgentId: noop,
+      onCopyTerminalId: noop,
+      onCopyFilePath: noop,
+      onReloadAgent: noop,
+      onRenameTab: noop,
+      onCloseTab: noop,
+      onCloseTabsBefore: noop,
+      onCloseTabsAfter: noop,
+      onCloseOtherTabs: noop,
+      onMoveTab,
+    });
+  }
+  const item = (entries: ReturnType<typeof build>, key: string) =>
+    entries.find((entry) => entry.kind === "item" && entry.key === key);
+
+  it("omits move items without a handler or with a single tab", () => {
+    expect(item(build("desktop", 0, 3), "move-before")).toBeUndefined();
+    expect(item(build("desktop", 0, 1, vi.fn()), "move-before")).toBeUndefined();
+  });
+
+  it("moves by one position and disables at the ends", () => {
+    const onMoveTab = vi.fn();
+    const first = build("desktop", 0, 3, onMoveTab);
+    expect(item(first, "move-before")).toMatchObject({ disabled: true, testID: "menu-move-left" });
+    const after = item(first, "move-after");
+    expect(after).toMatchObject({ disabled: false });
+    if (after?.kind === "item") after.onSelect();
+    expect(onMoveTab).toHaveBeenCalledWith("agent_123", 1);
+    expect(item(build("mobile", 2, 3, vi.fn()), "move-after")).toMatchObject({
+      disabled: true,
+      testID: "menu-move-down",
+    });
+  });
+});
+
+describe("moveWorkspaceTab", () => {
+  const tabs = [{ tabId: "a" }, { tabId: "b" }, { tabId: "c" }];
+  it("moves a tab and clamps the target", () => {
+    expect(moveWorkspaceTab(tabs, "a", 1)?.map((t) => t.tabId)).toEqual(["b", "a", "c"]);
+    expect(moveWorkspaceTab(tabs, "c", -5)?.map((t) => t.tabId)).toEqual(["c", "a", "b"]);
+  });
+  it("returns null for no-ops and unknown tabs", () => {
+    expect(moveWorkspaceTab(tabs, "a", 0)).toBeNull();
+    expect(moveWorkspaceTab(tabs, "z", 1)).toBeNull();
   });
 });

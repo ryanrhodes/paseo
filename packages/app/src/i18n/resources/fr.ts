@@ -695,6 +695,10 @@ export const fr: TranslationResources = {
         closeRight: "Fermer les onglets à droite",
         closeOthers: "Fermer les autres onglets",
         moveToMain: "Déplacer vers le panneau principal",
+        moveLeft: "Move left",
+        moveRight: "Move right",
+        moveUp: "Move up",
+        moveDown: "Move down",
         reloadAgent: "Recharger l’agent",
         reloadAgentTooltip:
           "Rechargez l’agent pour mettre à jour les skills, les MCP ou l’état de connexion.",

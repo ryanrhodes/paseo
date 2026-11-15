@@ -16,7 +16,11 @@ import { Pressable, Text, View, type LayoutChangeEvent, type ScrollView } from "
 import { useFilePanelOpenWithMenu } from "@/file-panels";
 import {
   CopyX,
+  ArrowDown,
+  ArrowLeft,
   ArrowLeftToLine,
+  ArrowRight,
+  ArrowUp,
   ArrowRightToLine,
   Copy,
   Pencil,
@@ -65,6 +69,7 @@ import {
   type WorkspaceDesktopTabActions,
   type WorkspaceTabMenuEntry,
   type WorkspaceTabMenuLabels,
+  moveWorkspaceTab,
 } from "@/screens/workspace/workspace-tab-menu";
 import type { WorkspaceTabDescriptor } from "@/screens/workspace/workspace-tabs-types";
 import type { PaneHost } from "@/panels/panel-manifest";
@@ -132,6 +137,10 @@ const ThemedCopy = withUnistyles(Copy);
 
 const ThemedRotateCw = withUnistyles(RotateCw);
 const ThemedArrowLeftToLine = withUnistyles(ArrowLeftToLine);
+const ThemedArrowLeft = withUnistyles(ArrowLeft);
+const ThemedArrowRight = withUnistyles(ArrowRight);
+const ThemedArrowUp = withUnistyles(ArrowUp);
+const ThemedArrowDown = withUnistyles(ArrowDown);
 const ThemedArrowRightToLine = withUnistyles(ArrowRightToLine);
 const ThemedCopyX = withUnistyles(CopyX);
 const ThemedPencil = withUnistyles(Pencil);
@@ -431,6 +440,14 @@ function TabContextMenuItem({
         return <ThemedCopy size={16} uniProps={mutedColorMapping} />;
       case "rotate-cw":
         return <ThemedRotateCw size={16} uniProps={mutedColorMapping} />;
+      case "arrow-left":
+        return <ThemedArrowLeft size={16} uniProps={mutedColorMapping} />;
+      case "arrow-right":
+        return <ThemedArrowRight size={16} uniProps={mutedColorMapping} />;
+      case "arrow-up":
+        return <ThemedArrowUp size={16} uniProps={mutedColorMapping} />;
+      case "arrow-down":
+        return <ThemedArrowDown size={16} uniProps={mutedColorMapping} />;
       case "arrow-left-to-line":
         return <ThemedArrowLeftToLine size={16} uniProps={mutedColorMapping} />;
       case "arrow-right-to-line":
@@ -1178,6 +1195,10 @@ function ResolvedWorkspaceDesktopTabsRow({
       closeLeft: t("workspace.tabs.menu.closeLeft"),
       closeRight: t("workspace.tabs.menu.closeRight"),
       closeOthers: t("workspace.tabs.menu.closeOthers"),
+      moveLeft: t("workspace.tabs.menu.moveLeft"),
+      moveRight: t("workspace.tabs.menu.moveRight"),
+      moveUp: t("workspace.tabs.menu.moveUp"),
+      moveDown: t("workspace.tabs.menu.moveDown"),
       reloadAgent: t("workspace.tabs.menu.reloadAgent"),
       reloadAgentTooltip: t("workspace.tabs.menu.reloadAgentTooltip"),
       close: t("workspace.tabs.menu.close"),
@@ -1292,6 +1313,19 @@ function ResolvedWorkspaceDesktopTabsRow({
     [onReorderTabs],
   );
 
+  // Menu-driven reorder: the fallback where drag-to-reorder is unavailable (native iOS/iPadOS).
+  const handleMoveTab = useCallback(
+    (tabId: string, toIndex: number) => {
+      const next = moveWorkspaceTab(
+        displayedTabs.map((item) => item.tab),
+        tabId,
+        toIndex,
+      );
+      if (next) onReorderTabs(next);
+    },
+    [displayedTabs, onReorderTabs],
+  );
+
   const getTabDragData = useMemo(() => {
     if (!paneId) return undefined;
     return (tab: ResolvedWorkspaceDesktopTabRowItem) => ({
@@ -1351,6 +1385,7 @@ function ResolvedWorkspaceDesktopTabsRow({
           onCloseTabsToLeft={onCloseTabsToLeft}
           onCloseTabsToRight={onCloseTabsToRight}
           onCloseOtherTabs={onCloseOtherTabs}
+          onMoveTab={handleMoveTab}
           resolvedTabWidth={resolvedTabWidth}
           showLabel={showLabel}
           showCloseButton={shouldShowCloseButton}
@@ -1372,6 +1407,7 @@ function ResolvedWorkspaceDesktopTabsRow({
       layout.items,
       normalizedServerId,
       normalizedWorkspaceId,
+      handleMoveTab,
       onCloseOtherTabs,
       onCloseTab,
       onCloseTabsToLeft,
@@ -1509,6 +1545,7 @@ function ResolvedDesktopTabChip({
   onCloseTabsToLeft,
   onCloseTabsToRight,
   onCloseOtherTabs,
+  onMoveTab,
   resolvedTabWidth,
   showLabel,
   showCloseButton,
@@ -1537,6 +1574,7 @@ function ResolvedDesktopTabChip({
   onCloseTabsToLeft: (tabId: string) => Promise<void> | void;
   onCloseTabsToRight: (tabId: string) => Promise<void> | void;
   onCloseOtherTabs: (tabId: string) => Promise<void> | void;
+  onMoveTab?: (tabId: string, toIndex: number) => void;
   resolvedTabWidth: number;
   showLabel: boolean;
   showCloseButton: boolean;
@@ -1567,11 +1605,13 @@ function ResolvedDesktopTabChip({
         onCloseTabsToLeft,
         onCloseTabsToRight,
         onCloseOtherTabs,
+        onMoveTab,
         labels,
       }),
     [
       index,
       item.tab,
+      onMoveTab,
       onCloseOtherTabs,
       onCloseTab,
       onCloseTabsToLeft,

@@ -820,6 +820,10 @@ const SplitPaneView = memo(function SplitPaneView({
       compactHeaderActions,
     ],
   );
+  const handlePaneTouchCapture = useCallback(() => {
+    stableOnFocusPane(pane.id);
+    return false;
+  }, [pane.id, stableOnFocusPane]);
   return (
     <RenderProfile id={`SplitPaneView:${pane.id}`}>
       <View
@@ -827,6 +831,10 @@ const SplitPaneView = memo(function SplitPaneView({
         collapsable={false}
         style={styles.pane}
         testID={`workspace-pane-${pane.id}`}
+        // Native has no DOM pointerdown/focusin (see the effect above), so focus the pane from the
+        // capture phase of any touch inside it. Returning false never claims the responder, so the
+        // touched control still gets the press.
+        onStartShouldSetResponderCapture={isNative ? handlePaneTouchCapture : undefined}
       >
         <AdaptiveWorkspaceChrome compactHeader={compactHeader}>
           {ownsWorkspaceHeader ? renderMainHeader?.() : null}

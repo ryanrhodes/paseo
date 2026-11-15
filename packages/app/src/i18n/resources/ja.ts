@@ -695,6 +695,10 @@ export const ja: TranslationResources = {
         closeRight: "右のタブを閉じる",
         closeOthers: "他のタブを閉じる",
         moveToMain: "メインパネルへ移動",
+        moveLeft: "Move left",
+        moveRight: "Move right",
+        moveUp: "Move up",
+        moveDown: "Move down",
         reloadAgent: "エージェントを再読み込み",
         reloadAgentTooltip:
           "スキル、MCP、ログイン状態を更新するためにエージェントを再読み込みします。",

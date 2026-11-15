@@ -94,6 +94,14 @@ const variants = {
   },
 };
 
+// Fork: Ryan's personal build. Its own bundle id so it installs next to the App Store app,
+// signed with his team. No Firebase/Expo push credentials, so no push notifications.
+variants.personal = {
+  name: "Paseo R",
+  packageId: "com.ryanrhodes.paseo",
+  appleTeamId: "GD7EU924Y9",
+};
+
 const variant = variants[appVariant] ?? variants.production;
 const nativeReleaseVersion = getNativeReleaseVersion(pkg.version);
 
@@ -114,6 +122,7 @@ export default {
         ITSAppUsesNonExemptEncryption: false,
       },
       bundleIdentifier: variant.packageId,
+      ...(variant.appleTeamId ? { appleTeamId: variant.appleTeamId } : {}),
       ...(variant.googleServiceInfoPlist
         ? { googleServicesFile: variant.googleServiceInfoPlist }
         : {}),

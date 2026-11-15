@@ -3204,6 +3204,24 @@ function WorkspaceScreenContent({
     [persistenceKey, reorderWorkspaceTabsInPane],
   );
 
+  const handleReorderSwitcherTabs = useCallback(
+    (nextTabs: WorkspaceTabDescriptor[], paneId?: string) => {
+      if (paneId) {
+        handleReorderTabsInPane(
+          paneId,
+          nextTabs.map((tab) => tab.tabId),
+        );
+        return;
+      }
+      if (!focusedPaneId) return;
+      handleReorderTabsInPane(
+        focusedPaneId,
+        nextTabs.map((tab) => tab.tabId),
+      );
+    },
+    [focusedPaneId, handleReorderTabsInPane],
+  );
+
   const handleReorderTabsInFocusedPane = useCallback(
     (nextTabs: WorkspaceTabDescriptor[]) => {
       if (!focusedPaneId) {
@@ -3436,10 +3454,12 @@ function WorkspaceScreenContent({
           onCloseTabsAbove={actions.closeAbove}
           onCloseTabsBelow={actions.closeBelow}
           onCloseOtherTabs={actions.closeOthers}
+          onReorderTabs={handleReorderSwitcherTabs}
         />
       );
     },
     [
+      handleReorderSwitcherTabs,
       normalizedServerId,
       normalizedWorkspaceId,
       handleSelectSwitcherTab,

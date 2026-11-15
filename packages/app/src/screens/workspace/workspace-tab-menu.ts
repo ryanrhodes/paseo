@@ -16,6 +16,10 @@ export interface WorkspaceTabMenuLabels {
   closeLeft: string;
   closeRight: string;
   closeOthers: string;
+  moveLeft: string;
+  moveRight: string;
+  moveUp: string;
+  moveDown: string;
   reloadAgent: string;
   reloadAgentTooltip: string;
   close: string;
@@ -32,6 +36,10 @@ export const DEFAULT_WORKSPACE_TAB_MENU_LABELS: WorkspaceTabMenuLabels = {
   closeLeft: i18n.t("workspace.tabs.menu.closeLeft"),
   closeRight: i18n.t("workspace.tabs.menu.closeRight"),
   closeOthers: i18n.t("workspace.tabs.menu.closeOthers"),
+  moveLeft: i18n.t("workspace.tabs.menu.moveLeft"),
+  moveRight: i18n.t("workspace.tabs.menu.moveRight"),
+  moveUp: i18n.t("workspace.tabs.menu.moveUp"),
+  moveDown: i18n.t("workspace.tabs.menu.moveDown"),
   reloadAgent: i18n.t("workspace.tabs.menu.reloadAgent"),
   reloadAgentTooltip: i18n.t("workspace.tabs.menu.reloadAgentTooltip"),
   close: i18n.t("workspace.tabs.menu.close"),
@@ -47,6 +55,10 @@ export type WorkspaceTabMenuEntry =
         | "rotate-cw"
         | "arrow-left-to-line"
         | "arrow-right-to-line"
+        | "arrow-left"
+        | "arrow-right"
+        | "arrow-up"
+        | "arrow-down"
         | "copy-x"
         | "pencil"
         | "x";
@@ -83,6 +95,8 @@ interface BuildWorkspaceTabMenuEntriesInput {
   onCloseTabsBefore: (tabId: string) => Promise<void> | void;
   onCloseTabsAfter: (tabId: string) => Promise<void> | void;
   onCloseOtherTabs: (tabId: string) => Promise<void> | void;
+  /** Moves the tab to `toIndex` within its pane. When absent, no move items are shown. */
+  onMoveTab?: (tabId: string, toIndex: number) => void;
   labels?: WorkspaceTabMenuLabels;
 }
 
@@ -100,6 +114,7 @@ interface BuildWorkspaceDesktopTabActionsInput {
   onCloseTabsToLeft: (tabId: string) => Promise<void> | void;
   onCloseTabsToRight: (tabId: string) => Promise<void> | void;
   onCloseOtherTabs: (tabId: string) => Promise<void> | void;
+  onMoveTab?: (tabId: string, toIndex: number) => void;
   labels?: WorkspaceTabMenuLabels;
 }
 
@@ -187,6 +202,7 @@ export function buildWorkspaceTabMenuEntries(
     onCloseTabsBefore,
     onCloseTabsAfter,
     onCloseOtherTabs,
+    onMoveTab,
   } = input;
   const labels = input.labels ?? DEFAULT_WORKSPACE_TAB_MENU_LABELS;
   const isFirstTab = index === 0;
@@ -264,6 +280,33 @@ export function buildWorkspaceTabMenuEntries(
       kind: "separator",
       key: "rename-separator",
     });
+  }
+
+  if (onMoveTab && !isOnlyTab) {
+    const isMobile = surface === "mobile";
+    entries.push({
+      kind: "item",
+      key: "move-before",
+      label: isMobile ? labels.moveUp : labels.moveLeft,
+      icon: isMobile ? "arrow-up" : "arrow-left",
+      disabled: isFirstTab,
+      testID: `${menuTestIDBase}-${isMobile ? "move-up" : "move-left"}`,
+      onSelect: () => {
+        onMoveTab(tab.tabId, index - 1);
+      },
+    });
+    entries.push({
+      kind: "item",
+      key: "move-after",
+      label: isMobile ? labels.moveDown : labels.moveRight,
+      icon: isMobile ? "arrow-down" : "arrow-right",
+      disabled: isLastTab,
+      testID: `${menuTestIDBase}-${isMobile ? "move-down" : "move-right"}`,
+      onSelect: () => {
+        onMoveTab(tab.tabId, index + 1);
+      },
+    });
+    entries.push({ kind: "separator", key: "move-separator" });
   }
 
   entries.push({
@@ -349,8 +392,25 @@ export function buildWorkspaceDesktopTabActions(
       onCloseTabsBefore: input.onCloseTabsToLeft,
       onCloseTabsAfter: input.onCloseTabsToRight,
       onCloseOtherTabs: input.onCloseOtherTabs,
+      onMoveTab: input.onMoveTab,
       labels: input.labels,
     }),
     closeButtonTestId: getCloseButtonTestId(input.tab),
   };
+}
+
+/** Returns `tabs` with `tabId` moved to `toIndex` (clamped), or null when nothing would change. */
+export function moveWorkspaceTab<T extends { tabId: string }>(
+  tabs: readonly T[],
+  tabId: string,
+  toIndex: number,
+): T[] | null {
+  const fromIndex = tabs.findIndex((tab) => tab.tabId === tabId);
+  if (fromIndex < 0) return null;
+  const target = Math.max(0, Math.min(tabs.length - 1, toIndex));
+  if (target === fromIndex) return null;
+  const next = tabs.slice();
+  const [moved] = next.splice(fromIndex, 1);
+  next.splice(target, 0, moved);
+  return next;
 }
