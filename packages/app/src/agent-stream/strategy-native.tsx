@@ -430,7 +430,11 @@ function NativeStreamViewport(props: StreamRenderInput & { strategy: StreamStrat
   const topOverlayInset = useStreamTopOverlayInset();
   // Where a tap on the header counts as a status bar tap, opening the sidebar would scroll the chat
   // to its start.
-  const scrollsToTop = !useStatusBarTapsReachHeader();
+  // Fork: iPadOS also treats taps near the header (e.g. the sidebar button) as status bar taps, so
+  // scroll-to-top jumped the chat on iPad too. Keep it off everywhere; the hook call stays so the
+  // upstream fix merges cleanly.
+  useStatusBarTapsReachHeader();
+  const scrollsToTop = false;
   // No keyboard inset: one committed after the keyboard settles moves every row when the end pin is
   // not holding the offset (docs/agent-stream-disclosure.md).
   const listContentContainerStyle = useMemo(
