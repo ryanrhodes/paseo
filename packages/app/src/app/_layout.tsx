@@ -31,7 +31,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import { AppState, useWindowDimensions, View } from "react-native";
-import { GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
+import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { AppearanceProvider } from "@/appearance/provider";
@@ -112,6 +112,7 @@ import { useCompactWebViewportZoomLock } from "@/hooks/use-compact-web-viewport-
 import { useOpenProject } from "@/hooks/use-open-project";
 import { useAppSettings } from "@/hooks/use-settings";
 import { useOpenAgentListGesture } from "@/mobile-panels/gestures";
+import { useDockSidebarSwipeGesture } from "@/mobile-panels/dock-swipe-gesture";
 import { MobilePanelsProvider, useIsMobilePanelActive } from "@/mobile-panels/provider";
 import {
   KeyboardActionDispatcherProvider,
@@ -681,9 +682,15 @@ function MobileGestureWrapper({
 }) {
   const isCompactLayout = useIsCompactFormFactor();
   const openGesture = useOpenAgentListGesture(chromeEnabled);
+  // Fork: when the wide sidebar is docked (overlay gestures off), swipe it in and out instead.
+  const dockGesture = useDockSidebarSwipeGesture(!isCompactLayout && !chromeEnabled);
+  const shellGesture = useMemo(
+    () => Gesture.Race(openGesture, dockGesture),
+    [dockGesture, openGesture],
+  );
 
   return (
-    <GestureDetector gesture={openGesture} touchAction={MOBILE_WEB_GESTURE_TOUCH_ACTION}>
+    <GestureDetector gesture={shellGesture} touchAction={MOBILE_WEB_GESTURE_TOUCH_ACTION}>
       <View
         collapsable={false}
         style={layoutStyles.surfaceFill}
