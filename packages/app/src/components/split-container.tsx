@@ -63,6 +63,10 @@ import {
 import type { WorkspaceTab } from "@/workspace-tabs/model";
 import { recordRenderProfileReasons, RenderProfile } from "@/utils/render-profiler";
 import { isNative } from "@/constants/platform";
+import { findAdjacentPane } from "@/utils/split-navigation";
+import type { PaneDirection, PaneMoveTarget } from "@/screens/workspace/workspace-tab-menu";
+
+const PANE_DIRECTIONS: readonly PaneDirection[] = ["left", "right", "up", "down"];
 
 interface SplitContainerProps {
   layout: WorkspaceLayout;
@@ -115,10 +119,8 @@ interface SplitContainerProps {
   onExitFocusMode: () => void;
 }
 
-interface SplitNodeViewProps extends Omit<
-  SplitContainerProps,
-  "layout" | "onMoveTabToPane" | "onSelectTabInPane"
-> {
+interface SplitNodeViewProps extends Omit<SplitContainerProps, "layout" | "onSelectTabInPane"> {
+  getPaneMoveTargets: (paneId: string) => PaneMoveTarget[];
   node: SplitNode;
   uiTabs: WorkspaceTab[];
   focusedPaneId: string | null;
@@ -186,6 +188,7 @@ export function SplitContainer({
   onFocusPane,
   onSplitPane,
   onSplitPaneEmpty,
+  onMoveTabToPane,
   onResizeSplit,
   onReorderTabsInPane,
   focusModeEnabled,
@@ -250,6 +253,14 @@ export function SplitContainer({
       : inheritedWindowChromeCorners;
   const mainColumnStyle = styles.mainColumn;
   const renderRoot = useMemo(() => wrapRootPaneForStableMount(splitRoot.root), [splitRoot.root]);
+  const getPaneMoveTargets = useCallback(
+    (paneId: string): PaneMoveTarget[] =>
+      PANE_DIRECTIONS.flatMap((direction) => {
+        const adjacentPaneId = findAdjacentPane(splitRoot.root, paneId, direction);
+        return adjacentPaneId ? [{ direction, paneId: adjacentPaneId }] : [];
+      }),
+    [splitRoot.root],
+  );
   const panesShareWorkspaceHeader = hasMultipleVisiblePanes(splitRoot.root);
   const sharedCompactHeader = useMemo(
     () =>
@@ -300,6 +311,8 @@ export function SplitContainer({
                 onFocusPane={onFocusPane}
                 onSplitPane={onSplitPane}
                 onSplitPaneEmpty={onSplitPaneEmpty}
+                onMoveTabToPane={onMoveTabToPane}
+                getPaneMoveTargets={getPaneMoveTargets}
                 onResizeSplit={onResizeSplit}
                 onReorderTabsInPane={onReorderTabsInPane}
                 activeDragTabId={activeDragTabId}
@@ -438,6 +451,8 @@ function SplitNodeView({
   onFocusPane,
   onSplitPane,
   onSplitPaneEmpty,
+  onMoveTabToPane,
+  getPaneMoveTargets,
   onResizeSplit,
   onReorderTabsInPane,
   activeDragTabId,
@@ -529,6 +544,8 @@ function SplitNodeView({
             onFocusPane={onFocusPane}
             onSplitPane={onSplitPane}
             onSplitPaneEmpty={onSplitPaneEmpty}
+            onMoveTabToPane={onMoveTabToPane}
+            getPaneMoveTargets={getPaneMoveTargets}
             onReorderTabsInPane={onReorderTabsInPane}
             activeDragTabId={activeDragTabId}
             showDropZones={showDropZones}
@@ -584,6 +601,8 @@ function SplitNodeView({
               onFocusPane={onFocusPane}
               onSplitPane={onSplitPane}
               onSplitPaneEmpty={onSplitPaneEmpty}
+              onMoveTabToPane={onMoveTabToPane}
+              getPaneMoveTargets={getPaneMoveTargets}
               onResizeSplit={onResizeSplit}
               onReorderTabsInPane={onReorderTabsInPane}
               activeDragTabId={activeDragTabId}
@@ -658,6 +677,8 @@ const SplitPaneView = memo(function SplitPaneView({
   onFocusPane,
   onSplitPane: _onSplitPane,
   onSplitPaneEmpty,
+  onMoveTabToPane,
+  getPaneMoveTargets,
   onReorderTabsInPane,
   activeDragTabId,
   showDropZones,
@@ -760,6 +781,15 @@ const SplitPaneView = memo(function SplitPaneView({
     () => onSplitPaneEmpty({ targetPaneId: paneId, position: "bottom" }),
     [onSplitPaneEmpty, paneId],
   );
+  const handleSplitLeft = useCallback(
+    () => onSplitPaneEmpty({ targetPaneId: paneId, position: "left" }),
+    [onSplitPaneEmpty, paneId],
+  );
+  const handleSplitUp = useCallback(
+    () => onSplitPaneEmpty({ targetPaneId: paneId, position: "top" }),
+    [onSplitPaneEmpty, paneId],
+  );
+  const paneMoveTargets = useMemo(() => getPaneMoveTargets(paneId), [getPaneMoveTargets, paneId]);
   const handleTogglePaneMaximized = useCallback(
     () => onTogglePaneMaximized(paneId),
     [onTogglePaneMaximized, paneId],
@@ -873,6 +903,10 @@ const SplitPaneView = memo(function SplitPaneView({
                 onTogglePaneMaximized={handleTogglePaneMaximized}
                 onSplitRight={handleSplitRight}
                 onSplitDown={handleSplitDown}
+                onSplitLeft={handleSplitLeft}
+                onSplitUp={handleSplitUp}
+                paneMoveTargets={paneMoveTargets}
+                onMoveTabToPane={onMoveTabToPane}
                 focusModeEnabled={Boolean(focusModeEnabled)}
                 onExitFocusMode={onExitFocusMode}
               />

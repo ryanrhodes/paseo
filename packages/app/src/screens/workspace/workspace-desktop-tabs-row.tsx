@@ -70,6 +70,7 @@ import {
   type WorkspaceTabMenuEntry,
   type WorkspaceTabMenuLabels,
   moveWorkspaceTab,
+  type PaneMoveTarget,
 } from "@/screens/workspace/workspace-tab-menu";
 import type { WorkspaceTabDescriptor } from "@/screens/workspace/workspace-tabs-types";
 import type { PaneHost } from "@/panels/panel-manifest";
@@ -291,6 +292,8 @@ function WorkspacePaneToolbarActions({
   newTabShortcutKeys,
   onSplitRight,
   onSplitDown,
+  onSplitLeft,
+  onSplitUp,
   onTogglePaneMaximized,
 }: {
   panePanelKinds: PanePanelKinds;
@@ -305,6 +308,8 @@ function WorkspacePaneToolbarActions({
   newTabShortcutKeys: ShortcutKey[][] | null;
   onSplitRight?: () => void;
   onSplitDown?: () => void;
+  onSplitLeft?: () => void;
+  onSplitUp?: () => void;
   onTogglePaneMaximized?: () => void;
 }) {
   const { t } = useTranslation();
@@ -393,6 +398,24 @@ function WorkspacePaneToolbarActions({
             >
               {t("workspace.tabs.actions.splitDown")}
             </DropdownMenuItem>
+            {onSplitLeft ? (
+              <DropdownMenuItem
+                leading={splitRightLeading}
+                testID="workspace-split-pane-left"
+                onSelect={onSplitLeft}
+              >
+                {t("workspace.tabs.actions.splitLeft")}
+              </DropdownMenuItem>
+            ) : null}
+            {onSplitUp ? (
+              <DropdownMenuItem
+                leading={splitDownLeading}
+                testID="workspace-split-pane-up"
+                onSelect={onSplitUp}
+              >
+                {t("workspace.tabs.actions.splitUp")}
+              </DropdownMenuItem>
+            ) : null}
           </DropdownMenuContent>
         </DropdownMenu>
       ) : null}
@@ -579,6 +602,11 @@ export interface WorkspaceDesktopTabsRowProps {
   onTogglePaneMaximized?: () => void;
   onSplitRight?: () => void;
   onSplitDown?: () => void;
+  onSplitLeft?: () => void;
+  onSplitUp?: () => void;
+  /** Adjacent panes this pane's tabs can be moved into from the tab menu. */
+  paneMoveTargets?: readonly PaneMoveTarget[];
+  onMoveTabToPane?: (tabId: string, paneId: string) => void;
   focusModeEnabled: boolean;
   onExitFocusMode: () => void;
 }
@@ -1119,6 +1147,10 @@ function ResolvedWorkspaceDesktopTabsRow({
   onTogglePaneMaximized,
   onSplitRight,
   onSplitDown,
+  onSplitLeft,
+  onSplitUp,
+  paneMoveTargets,
+  onMoveTabToPane,
   focusModeEnabled,
   onExitFocusMode,
 }: ResolvedWorkspaceDesktopTabsRowProps) {
@@ -1199,6 +1231,10 @@ function ResolvedWorkspaceDesktopTabsRow({
       moveRight: t("workspace.tabs.menu.moveRight"),
       moveUp: t("workspace.tabs.menu.moveUp"),
       moveDown: t("workspace.tabs.menu.moveDown"),
+      moveToPaneLeft: t("workspace.tabs.menu.moveToPaneLeft"),
+      moveToPaneRight: t("workspace.tabs.menu.moveToPaneRight"),
+      moveToPaneUp: t("workspace.tabs.menu.moveToPaneUp"),
+      moveToPaneDown: t("workspace.tabs.menu.moveToPaneDown"),
       reloadAgent: t("workspace.tabs.menu.reloadAgent"),
       reloadAgentTooltip: t("workspace.tabs.menu.reloadAgentTooltip"),
       close: t("workspace.tabs.menu.close"),
@@ -1386,6 +1422,8 @@ function ResolvedWorkspaceDesktopTabsRow({
           onCloseTabsToRight={onCloseTabsToRight}
           onCloseOtherTabs={onCloseOtherTabs}
           onMoveTab={handleMoveTab}
+          paneMoveTargets={paneMoveTargets}
+          onMoveTabToPane={onMoveTabToPane}
           resolvedTabWidth={resolvedTabWidth}
           showLabel={showLabel}
           showCloseButton={shouldShowCloseButton}
@@ -1408,6 +1446,8 @@ function ResolvedWorkspaceDesktopTabsRow({
       normalizedServerId,
       normalizedWorkspaceId,
       handleMoveTab,
+      paneMoveTargets,
+      onMoveTabToPane,
       onCloseOtherTabs,
       onCloseTab,
       onCloseTabsToLeft,
@@ -1521,6 +1561,8 @@ function ResolvedWorkspaceDesktopTabsRow({
         newTabShortcutKeys={newTabKeys}
         onSplitRight={onSplitRight}
         onSplitDown={onSplitDown}
+        onSplitLeft={onSplitLeft}
+        onSplitUp={onSplitUp}
         onTogglePaneMaximized={onTogglePaneMaximized}
       />
     </View>
@@ -1546,6 +1588,8 @@ function ResolvedDesktopTabChip({
   onCloseTabsToRight,
   onCloseOtherTabs,
   onMoveTab,
+  paneMoveTargets,
+  onMoveTabToPane,
   resolvedTabWidth,
   showLabel,
   showCloseButton,
@@ -1575,6 +1619,8 @@ function ResolvedDesktopTabChip({
   onCloseTabsToRight: (tabId: string) => Promise<void> | void;
   onCloseOtherTabs: (tabId: string) => Promise<void> | void;
   onMoveTab?: (tabId: string, toIndex: number) => void;
+  paneMoveTargets?: readonly PaneMoveTarget[];
+  onMoveTabToPane?: (tabId: string, paneId: string) => void;
   resolvedTabWidth: number;
   showLabel: boolean;
   showCloseButton: boolean;
@@ -1606,12 +1652,16 @@ function ResolvedDesktopTabChip({
         onCloseTabsToRight,
         onCloseOtherTabs,
         onMoveTab,
+        paneMoveTargets,
+        onMoveTabToPane,
         labels,
       }),
     [
       index,
       item.tab,
       onMoveTab,
+      paneMoveTargets,
+      onMoveTabToPane,
       onCloseOtherTabs,
       onCloseTab,
       onCloseTabsToLeft,

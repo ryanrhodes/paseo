@@ -5,6 +5,14 @@ import { buildDeterministicWorkspaceTabId } from "@/workspace-tabs/identity";
 
 export type WorkspaceTabMenuSurface = "desktop" | "mobile";
 
+export type PaneDirection = "left" | "right" | "up" | "down";
+
+/** An adjacent pane a tab can be moved into. */
+export interface PaneMoveTarget {
+  direction: PaneDirection;
+  paneId: string;
+}
+
 export interface WorkspaceTabMenuLabels {
   copyResumeCommand: string;
   copyAgentId: string;
@@ -20,6 +28,10 @@ export interface WorkspaceTabMenuLabels {
   moveRight: string;
   moveUp: string;
   moveDown: string;
+  moveToPaneLeft: string;
+  moveToPaneRight: string;
+  moveToPaneUp: string;
+  moveToPaneDown: string;
   reloadAgent: string;
   reloadAgentTooltip: string;
   close: string;
@@ -40,6 +52,10 @@ export const DEFAULT_WORKSPACE_TAB_MENU_LABELS: WorkspaceTabMenuLabels = {
   moveRight: i18n.t("workspace.tabs.menu.moveRight"),
   moveUp: i18n.t("workspace.tabs.menu.moveUp"),
   moveDown: i18n.t("workspace.tabs.menu.moveDown"),
+  moveToPaneLeft: i18n.t("workspace.tabs.menu.moveToPaneLeft"),
+  moveToPaneRight: i18n.t("workspace.tabs.menu.moveToPaneRight"),
+  moveToPaneUp: i18n.t("workspace.tabs.menu.moveToPaneUp"),
+  moveToPaneDown: i18n.t("workspace.tabs.menu.moveToPaneDown"),
   reloadAgent: i18n.t("workspace.tabs.menu.reloadAgent"),
   reloadAgentTooltip: i18n.t("workspace.tabs.menu.reloadAgentTooltip"),
   close: i18n.t("workspace.tabs.menu.close"),
@@ -97,6 +113,9 @@ interface BuildWorkspaceTabMenuEntriesInput {
   onCloseOtherTabs: (tabId: string) => Promise<void> | void;
   /** Moves the tab to `toIndex` within its pane. When absent, no move items are shown. */
   onMoveTab?: (tabId: string, toIndex: number) => void;
+  /** Adjacent panes to offer as "Move to … pane" items. */
+  paneMoveTargets?: readonly PaneMoveTarget[];
+  onMoveTabToPane?: (tabId: string, paneId: string) => void;
   labels?: WorkspaceTabMenuLabels;
 }
 
@@ -115,6 +134,8 @@ interface BuildWorkspaceDesktopTabActionsInput {
   onCloseTabsToRight: (tabId: string) => Promise<void> | void;
   onCloseOtherTabs: (tabId: string) => Promise<void> | void;
   onMoveTab?: (tabId: string, toIndex: number) => void;
+  paneMoveTargets?: readonly PaneMoveTarget[];
+  onMoveTabToPane?: (tabId: string, paneId: string) => void;
   labels?: WorkspaceTabMenuLabels;
 }
 
@@ -203,6 +224,8 @@ export function buildWorkspaceTabMenuEntries(
     onCloseTabsAfter,
     onCloseOtherTabs,
     onMoveTab,
+    paneMoveTargets,
+    onMoveTabToPane,
   } = input;
   const labels = input.labels ?? DEFAULT_WORKSPACE_TAB_MENU_LABELS;
   const isFirstTab = index === 0;
@@ -309,6 +332,34 @@ export function buildWorkspaceTabMenuEntries(
     entries.push({ kind: "separator", key: "move-separator" });
   }
 
+  if (onMoveTabToPane && paneMoveTargets && paneMoveTargets.length > 0) {
+    const paneLabels: Record<PaneDirection, string> = {
+      left: labels.moveToPaneLeft,
+      right: labels.moveToPaneRight,
+      up: labels.moveToPaneUp,
+      down: labels.moveToPaneDown,
+    };
+    const paneIcons = {
+      left: "arrow-left",
+      right: "arrow-right",
+      up: "arrow-up",
+      down: "arrow-down",
+    } as const;
+    for (const target of paneMoveTargets) {
+      entries.push({
+        kind: "item",
+        key: `move-to-pane-${target.direction}`,
+        label: paneLabels[target.direction],
+        icon: paneIcons[target.direction],
+        testID: `${menuTestIDBase}-move-to-pane-${target.direction}`,
+        onSelect: () => {
+          onMoveTabToPane(tab.tabId, target.paneId);
+        },
+      });
+    }
+    entries.push({ kind: "separator", key: "move-to-pane-separator" });
+  }
+
   entries.push({
     kind: "item",
     key: "close-before",
@@ -393,6 +444,8 @@ export function buildWorkspaceDesktopTabActions(
       onCloseTabsAfter: input.onCloseTabsToRight,
       onCloseOtherTabs: input.onCloseOtherTabs,
       onMoveTab: input.onMoveTab,
+      paneMoveTargets: input.paneMoveTargets,
+      onMoveTabToPane: input.onMoveTabToPane,
       labels: input.labels,
     }),
     closeButtonTestId: getCloseButtonTestId(input.tab),

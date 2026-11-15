@@ -430,3 +430,39 @@ describe("moveWorkspaceTab", () => {
     expect(moveWorkspaceTab(tabs, "z", 1)).toBeNull();
   });
 });
+
+describe("move to pane entries", () => {
+  it("lists one item per adjacent pane and moves the tab there", () => {
+    const noop = vi.fn();
+    const onMoveTabToPane = vi.fn();
+    const entries = buildWorkspaceTabMenuEntries({
+      surface: "desktop",
+      tab: createAgentTab(),
+      index: 0,
+      tabCount: 1,
+      menuTestIDBase: "menu",
+      onCopyResumeCommand: noop,
+      onCopyAgentId: noop,
+      onCopyTerminalId: noop,
+      onCopyFilePath: noop,
+      onReloadAgent: noop,
+      onRenameTab: noop,
+      onCloseTab: noop,
+      onCloseTabsBefore: noop,
+      onCloseTabsAfter: noop,
+      onCloseOtherTabs: noop,
+      paneMoveTargets: [
+        { direction: "right", paneId: "pane-b" },
+        { direction: "down", paneId: "pane-c" },
+      ],
+      onMoveTabToPane,
+    });
+    const keys = entries.filter((e) => e.kind === "item").map((e) => e.key);
+    expect(keys).toContain("move-to-pane-right");
+    expect(keys).toContain("move-to-pane-down");
+    expect(keys).not.toContain("move-to-pane-left");
+    const right = entries.find((e) => e.kind === "item" && e.key === "move-to-pane-right");
+    if (right?.kind === "item") right.onSelect();
+    expect(onMoveTabToPane).toHaveBeenCalledWith("agent_123", "pane-b");
+  });
+});
