@@ -99,6 +99,8 @@ const variants = {
 variants.personal = {
   name: "Paseo R",
   packageId: "com.ryanrhodes.paseo",
+  // Blue instead of black, to tell it apart from the App Store app on the home screen.
+  icon: "./assets/images/icon-personal.png",
   appleTeamId: "GD7EU924Y9",
 };
 
@@ -111,7 +113,7 @@ export default {
     slug: "voice-mobile",
     version: nativeReleaseVersion.appVersion,
     orientation: "default",
-    icon: "./assets/images/icon.png",
+    icon: variant.icon ?? "./assets/images/icon.png",
     scheme: "paseo",
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
