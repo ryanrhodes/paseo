@@ -883,6 +883,7 @@ function SendButtonTooltip({
         accessibilityHint={submitAccessibilityHint}
         accessibilityRole="button"
         testID={submitButtonTestID}
+        pressRetentionOffset={SEND_PRESS_RETENTION_OFFSET}
         style={sendButtonCombinedStyle}
       >
         <View style={submitLabel ? styles.sendButtonDiscLabeled : styles.sendButtonDisc}>
@@ -900,6 +901,13 @@ function SendButtonTooltip({
     </Tooltip>
   );
 }
+
+// Fork: with the on-screen keyboard up, iOS lifts the composer with a native-driver transform that
+// the press-region measurement does not see, so the send button's measured rect sits a keyboard
+// height below where it is drawn. Any finger movement during the tap then read as "left the
+// button" and cancelled the press (nothing happened; only perfectly still taps sent). A
+// retention region taller than any keyboard keeps such taps.
+const SEND_PRESS_RETENTION_OFFSET = { top: 800, bottom: 120, left: 60, right: 60 } as const;
 
 type PrimaryActionKind = "send" | "active" | "voiceMode" | "none";
 
