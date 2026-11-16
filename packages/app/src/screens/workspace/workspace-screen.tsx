@@ -1051,6 +1051,82 @@ function DesktopCenterColumnChrome({
   );
 }
 
+// Fork: folded on the iPhone Duo (or any compact native width) a split layout only shows its
+// focused pane, so the compact tab switcher lists every visible pane's tabs instead of hiding the
+// others. Picking one focuses its pane (revealWorkspaceTab → focusTab).
+interface CompactAllPaneTabs {
+  tabs: WorkspaceTabDescriptor[];
+  paneIdByTabId: Map<string, string>;
+}
+
+function useCompactAllPaneTabs(
+  enabled: boolean,
+  workspaceLayout: WorkspaceLayout | null,
+  uiTabs: WorkspaceTab[],
+  explorerSidebarPaneId: string | null,
+): CompactAllPaneTabs | null {
+  return useMemo(() => {
+    if (!enabled || !isNative || !workspaceLayout) return null;
+    const panes = collectAllPanes(workspaceLayout.root).filter(
+      (pane) => pane.hidden !== true && pane.id !== explorerSidebarPaneId,
+    );
+    if (panes.length < 2) return null;
+    const tabs: WorkspaceTabDescriptor[] = [];
+    const paneIdByTabId = new Map<string, string>();
+    for (const pane of panes) {
+      for (const tab of deriveWorkspacePaneState({ pane, tabs: uiTabs }).tabs) {
+        tabs.push(tab.descriptor);
+        paneIdByTabId.set(tab.descriptor.tabId, pane.id);
+      }
+    }
+    return { tabs, paneIdByTabId };
+  }, [enabled, explorerSidebarPaneId, uiTabs, workspaceLayout]);
+}
+
+type CloseTabs = (tabId: string) => Promise<void> | void;
+type CloseTabsIn = (tabId: string, list: WorkspaceTabDescriptor[]) => Promise<void> | void;
+
+// Fork: with the all-panes list, the bulk close actions act on that same list.
+function useCompactHeaderTabs(input: {
+  allPane: CompactAllPaneTabs | null;
+  tabs: WorkspaceTabDescriptor[];
+  activeTabKey: string;
+  closeAbove: CloseTabs;
+  closeBelow: CloseTabs;
+  closeOthers: CloseTabs;
+  closeAboveIn: CloseTabsIn;
+  closeBelowIn: CloseTabsIn;
+  closeOthersIn: CloseTabsIn;
+}): WorkspaceCompactHeaderTabs {
+  const { tabs, activeTabKey } = input;
+  const allPaneTabs = input.allPane?.tabs ?? null;
+  const { closeAbove, closeBelow, closeOthers, closeAboveIn, closeBelowIn, closeOthersIn } = input;
+  return useMemo(() => {
+    if (!allPaneTabs) {
+      return { tabs, activeTabKey, actions: { closeAbove, closeBelow, closeOthers } };
+    }
+    return {
+      tabs: allPaneTabs,
+      activeTabKey,
+      actions: {
+        closeAbove: (tabId: string) => closeAboveIn(tabId, allPaneTabs),
+        closeBelow: (tabId: string) => closeBelowIn(tabId, allPaneTabs),
+        closeOthers: (tabId: string) => closeOthersIn(tabId, allPaneTabs),
+      },
+    };
+  }, [
+    activeTabKey,
+    allPaneTabs,
+    closeAbove,
+    closeAboveIn,
+    closeBelow,
+    closeBelowIn,
+    closeOthers,
+    closeOthersIn,
+    tabs,
+  ]);
+}
+
 // Fork: on native, SplitContainer makes the chat jump back up when the docked sidebar resizes the
 // pane, so keep the stock single-pane view until the layout really has two visible panes.
 function useCanRenderPaneSplits(
@@ -1644,6 +1720,12 @@ function WorkspaceScreenContent({
     workspaceAgentVisibility,
   ]);
 
+  const compactAllPaneTabs = useCompactAllPaneTabs(
+    isMobile,
+    workspaceLayout,
+    uiTabs,
+    explorerSidebarPaneId,
+  );
   const activeTabId = focusedPaneTabState.activeTabId;
   const activeTab = focusedPaneTabState.activeTab;
 
@@ -3246,6 +3328,16 @@ function WorkspaceScreenContent({
 
   const handleReorderSwitcherTabs = useCallback(
     (nextTabs: WorkspaceTabDescriptor[], paneId?: string) => {
+      if (!paneId && compactAllPaneTabs) {
+        const byPane = new Map<string, string[]>();
+        for (const tab of nextTabs) {
+          const owner = compactAllPaneTabs.paneIdByTabId.get(tab.tabId);
+          if (!owner) continue;
+          byPane.set(owner, [...(byPane.get(owner) ?? []), tab.tabId]);
+        }
+        for (const [owner, tabIds] of byPane) handleReorderTabsInPane(owner, tabIds);
+        return;
+      }
       if (paneId) {
         handleReorderTabsInPane(
           paneId,
@@ -3259,7 +3351,7 @@ function WorkspaceScreenContent({
         nextTabs.map((tab) => tab.tabId),
       );
     },
-    [focusedPaneId, handleReorderTabsInPane],
+    [compactAllPaneTabs, focusedPaneId, handleReorderTabsInPane],
   );
 
   const handleReorderTabsInFocusedPane = useCallback(
@@ -3593,15 +3685,17 @@ function WorkspaceScreenContent({
       workspacePanelActive,
     ],
   );
-  const workspaceCompactHeaderTabs = {
+  const workspaceCompactHeaderTabs = useCompactHeaderTabs({
+    allPane: compactAllPaneTabs,
     tabs,
     activeTabKey,
-    actions: {
-      closeAbove: handleCloseTabsToLeft,
-      closeBelow: handleCloseTabsToRight,
-      closeOthers: handleCloseOtherTabs,
-    },
-  };
+    closeAbove: handleCloseTabsToLeft,
+    closeBelow: handleCloseTabsToRight,
+    closeOthers: handleCloseOtherTabs,
+    closeAboveIn: handleCloseTabsToLeftInPane,
+    closeBelowIn: handleCloseTabsToRightInPane,
+    closeOthersIn: handleCloseOtherTabsInPane,
+  });
   const compactWorkspaceHeader = renderCompactWorkspaceHeader(workspaceCompactHeaderTabs);
   // SplitContainer reserves the corner around its own compact headers; this is the column's.
   const centerColumnCompactHeader = useMemo(
