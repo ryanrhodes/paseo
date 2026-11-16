@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  resolveAgentLink,
   resolveNavigateToAgent,
+  type AgentLinkDeps,
   type AgentNavTarget,
   type NavigateToAgentDeps,
 } from "@/utils/navigate-to-agent/resolve";
@@ -110,5 +112,53 @@ describe("resolveNavigateToAgent", () => {
     expect(route).toBe("/h/server-1/agent/missing-agent");
     expect(hostNavigations).toEqual([{ route: "/h/server-1/agent/missing-agent" }]);
     expect(tabNavigations).toEqual([]);
+  });
+});
+
+describe("resolveAgentLink", () => {
+  function createLinkDeps(known: boolean): {
+    deps: AgentLinkDeps;
+    navigations: { serverId: string; agentId: string }[];
+  } {
+    const navigations: { serverId: string; agentId: string }[] = [];
+    return {
+      navigations,
+      deps: {
+        isKnownAgent: () => known,
+        navigateToAgent: (input) => {
+          navigations.push({ serverId: input.serverId, agentId: input.agentId });
+        },
+      },
+    };
+  }
+
+  it("navigates to the agent named by a paseo agent link", () => {
+    const { deps, navigations } = createLinkDeps(true);
+
+    expect(resolveAgentLink(`paseo://h/${SERVER_ID}/agent/${AGENT_ID}`, deps)).toBe(true);
+    expect(navigations).toEqual([{ serverId: SERVER_ID, agentId: AGENT_ID }]);
+  });
+
+  it("consumes the link but does nothing for an agent the host doesn't know", () => {
+    const { deps, navigations } = createLinkDeps(false);
+
+    expect(resolveAgentLink(`paseo://h/${SERVER_ID}/agent/${AGENT_ID}`, deps)).toBe(true);
+    expect(navigations).toEqual([]);
+  });
+
+  it("leaves malformed paseo links and other schemes to the caller", () => {
+    const { deps, navigations } = createLinkDeps(true);
+
+    for (const url of [
+      `paseo://h/${SERVER_ID}/agent/`,
+      `paseo://h/${SERVER_ID}/workspace/${WORKSPACE_ID}`,
+      `paseo://h/${SERVER_ID}/agent/${AGENT_ID}/extra`,
+      `paseo://h/${SERVER_ID}/agent/${AGENT_ID}?x=1`,
+      `https://paseo.sh/h/${SERVER_ID}/agent/${AGENT_ID}`,
+      "https://example.com",
+    ]) {
+      expect(resolveAgentLink(url, deps)).toBe(false);
+    }
+    expect(navigations).toEqual([]);
   });
 });

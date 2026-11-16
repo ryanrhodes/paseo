@@ -1,4 +1,4 @@
-import { buildHostAgentDetailRoute } from "@/utils/host-routes";
+import { buildHostAgentDetailRoute, parseHostAgentRouteFromPathname } from "@/utils/host-routes";
 import { normalizeWorkspaceOpaqueId } from "@/utils/workspace-identity";
 import type { NavigateToWorkspaceInput } from "@/stores/navigation-active-workspace-store";
 
@@ -45,4 +45,24 @@ export function resolveNavigateToAgent(
     pin: input.pin,
     asTab: input.asTab,
   });
+}
+
+export interface AgentLinkDeps {
+  isKnownAgent: (input: { serverId: string; agentId: string }) => boolean;
+  navigateToAgent: (input: NavigateToAgentInput) => unknown;
+}
+
+const AGENT_LINK = /^paseo:\/\/h\/[^/?#\s]+\/agent\/[^/?#\s]+$/;
+
+/**
+ * Handles a pressed `paseo://h/<serverId>/agent/<agentId>` link: navigates when the agent is known
+ * on a host with a session, otherwise does nothing. Returns false for any other URL, which the
+ * caller then handles as before.
+ */
+export function resolveAgentLink(url: string, deps: AgentLinkDeps): boolean {
+  if (!AGENT_LINK.test(url)) return false;
+  const route = parseHostAgentRouteFromPathname(url.slice("paseo:/".length));
+  if (!route) return false;
+  if (deps.isKnownAgent(route)) deps.navigateToAgent(route);
+  return true;
 }

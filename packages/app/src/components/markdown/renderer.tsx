@@ -10,6 +10,7 @@ import { matchCommandLink, useAgentCommandHints, type CommandHints } from "@/age
 import { useForgeShorthand } from "@/git/forge-shorthand";
 import { pluginOverviewUrl } from "@getpaseo/protocol/plugin-overview";
 import { openExternalUrl } from "@/utils/open-external-url";
+import { openAgentLink } from "@/utils/navigate-to-agent";
 import { AttachmentLightbox, type ImageLightboxSource } from "@/components/attachment-lightbox";
 import type { Theme } from "@/styles/theme";
 import { isWeb } from "@/constants/platform";
@@ -130,6 +131,8 @@ const MarkdownPart = memo(function MarkdownPart({
       if (safe) void openExternalUrl(safe);
       return;
     }
+    // Agent links switch tabs in-app; openExternalUrl would drop the paseo:// scheme.
+    if (openAgentLink(url)) return;
     const command = commandHints && matchCommandLink(url, sourceType, commandHints.names);
     if (command) {
       commandHints.insert(command);
