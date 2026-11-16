@@ -3861,32 +3861,37 @@ function WorkspaceScreenContent({
 
           {shouldRenderDesktopPaneFallback ? (
             <NewTabLauncherProvider value={newTabLauncher}>
-              <WorkspaceDesktopTabsRow
-                paneId={focusedPaneIdOrUndefined}
-                ownsKeyboardShortcuts={false}
-                isFocused={isRouteFocused}
-                tabs={desktopTabRowItems}
-                normalizedServerId={normalizedServerId}
-                normalizedWorkspaceId={normalizedWorkspaceId}
-                setHoveredCloseTabKey={setHoveredCloseTabKey}
-                onNavigateTab={navigateToTabId}
-                onCloseTab={handleCloseTabById}
-                onCopyResumeCommand={handleCopyResumeCommand}
-                onCopyAgentId={handleCopyAgentId}
-                onCopyTerminalId={handleCopyTerminalId}
-                onCopyFilePath={handleCopyFilePath}
-                onReloadAgent={handleReloadAgent}
-                onRenameTab={handleRenameTab}
-                onCloseTabsToLeft={handleCloseTabsToLeft}
-                onCloseTabsToRight={handleCloseTabsToRight}
-                onCloseOtherTabs={handleCloseOtherTabs}
-                onCreateNewTab={handleCreateNewTab}
-                onReorderTabs={handleReorderTabsInFocusedPane}
-                {...fallbackSplitProps}
-                tabSwitcher={fallbackTabSwitcher}
-                focusModeEnabled={desktopFocusModeEnabled}
-                onExitFocusMode={toggleFocusMode}
-              />
+              {/* Fork: corners "none" so this row only pads for vertical-bar occlusions. */}
+              <WindowChromeRegion corners="none">
+                <WindowChromeSafeArea placement="inline">
+                  <WorkspaceDesktopTabsRow
+                    paneId={focusedPaneIdOrUndefined}
+                    ownsKeyboardShortcuts={false}
+                    isFocused={isRouteFocused}
+                    tabs={desktopTabRowItems}
+                    normalizedServerId={normalizedServerId}
+                    normalizedWorkspaceId={normalizedWorkspaceId}
+                    setHoveredCloseTabKey={setHoveredCloseTabKey}
+                    onNavigateTab={navigateToTabId}
+                    onCloseTab={handleCloseTabById}
+                    onCopyResumeCommand={handleCopyResumeCommand}
+                    onCopyAgentId={handleCopyAgentId}
+                    onCopyTerminalId={handleCopyTerminalId}
+                    onCopyFilePath={handleCopyFilePath}
+                    onReloadAgent={handleReloadAgent}
+                    onRenameTab={handleRenameTab}
+                    onCloseTabsToLeft={handleCloseTabsToLeft}
+                    onCloseTabsToRight={handleCloseTabsToRight}
+                    onCloseOtherTabs={handleCloseOtherTabs}
+                    onCreateNewTab={handleCreateNewTab}
+                    onReorderTabs={handleReorderTabsInFocusedPane}
+                    {...fallbackSplitProps}
+                    tabSwitcher={fallbackTabSwitcher}
+                    focusModeEnabled={desktopFocusModeEnabled}
+                    onExitFocusMode={toggleFocusMode}
+                  />
+                </WindowChromeSafeArea>
+              </WindowChromeRegion>
             </NewTabLauncherProvider>
           ) : null}
         </AdaptiveWorkspaceChrome>

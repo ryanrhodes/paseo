@@ -1,5 +1,14 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { View, type ViewProps } from "react-native";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { View, type LayoutChangeEvent, type ViewProps } from "react-native";
 import {
   DESKTOP_TRAFFIC_LIGHT_HEIGHT,
   DESKTOP_TRAFFIC_LIGHT_WIDTH,
@@ -12,7 +21,8 @@ import {
   getDesktopWindowControlsWidth,
 } from "@/desktop/window-chrome-presentation";
 import { isNative } from "@/constants/platform";
-import { useTopBand, type TopBand } from "@/window-layout";
+import { useSurfaceOcclusions, useTopBand, type TopBand } from "@/window-layout";
+import { resolveOcclusionClearance } from "@/window-layout/model";
 
 export type WindowChromeCorners = "none" | "top-left" | "top-right" | "both";
 type WindowChromeSafeAreaPlacement = "inline" | "below";
@@ -323,10 +333,13 @@ export function WindowChromeSafeArea({
   placement,
   horizontalPadding = 0,
   style,
+  onLayout,
   ...props
 }: WindowChromeSafeAreaProps) {
   const obstruction = useContext(WindowChromeContext);
   const corners = useContext(WindowChromeCornersContext);
+  const occlusion = useOcclusionClearance(placement === "inline", onLayout);
+  const occlusionClearance = occlusion.clearance;
   const safeAreaStyle = useMemo(() => {
     const resolved = resolveWindowChromeSafeArea({ obstruction, corners, placement });
     if (placement === "below") return resolved;
@@ -334,9 +347,40 @@ export function WindowChromeSafeArea({
     const paddingRight = "paddingRight" in resolved ? resolved.paddingRight : 0;
     return {
       paddingLeft: paddingLeft + horizontalPadding,
-      paddingRight: paddingRight + horizontalPadding,
+      paddingRight: Math.max(paddingRight, occlusionClearance) + horizontalPadding,
     };
-  }, [corners, horizontalPadding, obstruction, placement]);
+  }, [corners, horizontalPadding, obstruction, occlusionClearance, placement]);
   const combinedStyle = useMemo(() => [style, safeAreaStyle], [safeAreaStyle, style]);
-  return <View {...props} style={combinedStyle} />;
+  return (
+    <View {...props} ref={occlusion.ref} onLayout={occlusion.onLayout} style={combinedStyle} />
+  );
+}
+
+/**
+ * Fork: where the surface runs under a trailing vertical bar, an inline chrome row (a header or
+ * tab row) measures itself and pulls its trailing edge in only as far as the system's occlusions
+ * (status items, Live Activities) overlap it. Rows clear of them keep the full width.
+ */
+function useOcclusionClearance(enabled: boolean, onLayout: ViewProps["onLayout"]) {
+  const occlusions = useSurfaceOcclusions();
+  const ref = useRef<View>(null);
+  const [measured, setMeasured] = useState(0);
+  const active = enabled && occlusions !== null;
+  const measure = useCallback(() => {
+    if (!active || !occlusions) return;
+    ref.current?.measureInWindow((x, y, width, height) => {
+      setMeasured(resolveOcclusionClearance({ x, y, width, height }, occlusions));
+    });
+  }, [active, occlusions]);
+  useEffect(() => {
+    measure();
+  }, [measure]);
+  const handleLayout = useCallback(
+    (event: LayoutChangeEvent) => {
+      onLayout?.(event);
+      measure();
+    },
+    [measure, onLayout],
+  );
+  return { ref, onLayout: handleLayout, clearance: active ? measured : 0 };
 }

@@ -5,7 +5,7 @@ import { WindowInsetsContext } from "./context";
 export { useWindowLayout } from "./context";
 export { WindowLayoutActions, WindowLayoutActionsHost } from "./actions";
 export { WindowLayoutSurface, WindowLayoutDivisionGap } from "./surface";
-export { useStatusBarTapsReachHeader, useTopBand } from "./context";
+export { useStatusBarTapsReachHeader, useSurfaceOcclusions, useTopBand } from "./context";
 export { WindowSafeArea } from "./window-safe-area";
 export {
   resolveDesktopDivisionLayout,

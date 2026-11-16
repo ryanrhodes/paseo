@@ -2,8 +2,12 @@ import { useMemo, type ReactNode } from "react";
 import { View, type StyleProp, type ViewStyle } from "react-native";
 import { StyleSheet } from "react-native-unistyles";
 import { SafeAreaInsetsContext, useSafeAreaInsets } from "react-native-safe-area-context";
-import { useWindowLayout } from "./context";
-import { resolveWorkspaceActionPlacement, type DesktopDivisionLayout } from "./model";
+import { SurfaceOcclusionsContext, useWindowLayout } from "./context";
+import {
+  resolveTrailingBarOcclusions,
+  resolveWorkspaceActionPlacement,
+  type DesktopDivisionLayout,
+} from "./model";
 
 /** Consume horizontal safe areas once, including compact content beside a vertical bar. */
 export function WindowLayoutSurface({
@@ -16,22 +20,29 @@ export function WindowLayoutSurface({
   style: StyleProp<ViewStyle>;
 }) {
   const insets = useSafeAreaInsets();
-  const usesBar = resolveWorkspaceActionPlacement(useWindowLayout()) === "vertical-bar";
+  const layout = useWindowLayout();
+  const usesBar = resolveWorkspaceActionPlacement(layout) === "vertical-bar";
+  // Fork: a wide surface beside a trailing vertical bar runs to the screen edge, like Safari;
+  // header and tab rows pad around the bar's occlusions themselves.
+  const occlusions = useMemo(
+    () => resolveTrailingBarOcclusions(layout, compact),
+    [compact, layout],
+  );
+  const paddingRight = occlusions ? 0 : insets.right;
   const surfaceStyle = useMemo(
-    () => [
-      style,
-      (!compact || usesBar) && { paddingLeft: insets.left, paddingRight: insets.right },
-    ],
-    [style, compact, usesBar, insets.left, insets.right],
+    () => [style, (!compact || usesBar) && { paddingLeft: insets.left, paddingRight }],
+    [style, compact, usesBar, insets.left, paddingRight],
   );
-  const contentInsets = useMemo(
-    () => (compact && usesBar ? { ...insets, left: 0, right: 0 } : insets),
-    [compact, usesBar, insets],
-  );
+  const contentInsets = useMemo(() => {
+    if (compact && usesBar) return { ...insets, left: 0, right: 0 };
+    return occlusions ? { ...insets, right: 0 } : insets;
+  }, [compact, usesBar, insets, occlusions]);
   return (
     <View style={surfaceStyle}>
       <SafeAreaInsetsContext.Provider value={contentInsets}>
-        {children}
+        <SurfaceOcclusionsContext.Provider value={occlusions}>
+          {children}
+        </SurfaceOcclusionsContext.Provider>
       </SafeAreaInsetsContext.Provider>
     </View>
   );

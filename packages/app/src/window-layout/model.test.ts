@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  resolveOcclusionClearance,
   resolveSafeAreaInsets,
   resolveStatusBarTapsReachHeader,
   resolveTopBand,
+  resolveTrailingBarOcclusions,
   type WindowLayout,
   type WindowLayoutRect,
 } from "./model";
@@ -18,6 +20,41 @@ function layout(input: Partial<WindowLayout> = {}): WindowLayout {
     ...input,
   };
 }
+
+describe("resolveTrailingBarOcclusions", () => {
+  const bar = { x: 880, y: 0, width: 70, height: 660 };
+  const status = { x: 878, y: 0, width: 72, height: 150 };
+
+  it("returns the reported occlusions on a wide surface beside a trailing bar", () => {
+    const wide = layout({ verticalBarEdge: "trailing", verticalBar: bar, occlusions: [status] });
+    expect(resolveTrailingBarOcclusions(wide, false)).toEqual([status]);
+  });
+
+  it("falls back to the bar when no occlusions are reported", () => {
+    const wide = layout({ verticalBarEdge: "trailing", verticalBar: bar, occlusions: [] });
+    expect(resolveTrailingBarOcclusions(wide, false)).toEqual([bar]);
+  });
+
+  it("keeps the safe-area inset when compact, without a trailing bar, or without a layout", () => {
+    const wide = layout({ verticalBarEdge: "trailing", verticalBar: bar, occlusions: [status] });
+    expect(resolveTrailingBarOcclusions(wide, true)).toBeNull();
+    expect(resolveTrailingBarOcclusions(layout({ verticalBarEdge: "leading" }), false)).toBeNull();
+    expect(resolveTrailingBarOcclusions(null, false)).toBeNull();
+  });
+});
+
+describe("resolveOcclusionClearance", () => {
+  const status = { x: 878, y: 0, width: 72, height: 150 };
+
+  it("pulls a row in past the occlusion it overlaps", () => {
+    expect(resolveOcclusionClearance({ x: 420, y: 44, width: 530, height: 44 }, [status])).toBe(72);
+  });
+
+  it("leaves rows below or beside the occlusion at full width", () => {
+    expect(resolveOcclusionClearance({ x: 0, y: 200, width: 950, height: 44 }, [status])).toBe(0);
+    expect(resolveOcclusionClearance({ x: 0, y: 44, width: 420, height: 44 }, [status])).toBe(0);
+  });
+});
 
 describe("resolveSafeAreaInsets", () => {
   it("replaces only the bottom with the measured bar clearance", () => {

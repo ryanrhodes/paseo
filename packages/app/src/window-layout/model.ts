@@ -51,6 +51,39 @@ export function resolveTopBand(systemTop: number, layout: WindowLayout | null): 
 }
 
 /**
+ * Fork: the occlusions a wide surface runs underneath when it takes the full width beside a
+ * trailing vertical bar, or null when it keeps the safe-area inset. Falls back to the bar itself
+ * when the system reports no occlusions.
+ */
+export function resolveTrailingBarOcclusions(
+  layout: WindowLayout | null,
+  compact: boolean,
+): WindowLayoutRect[] | null {
+  if (compact || !layout || layout.verticalBarEdge !== "trailing") return null;
+  const reported = layout.occlusions ?? [];
+  if (reported.length > 0) return reported;
+  return layout.verticalBar ? [layout.verticalBar] : null;
+}
+
+/** How far a row's trailing edge must pull in so it clears every occlusion it overlaps. */
+export function resolveOcclusionClearance(
+  row: WindowLayoutRect,
+  occlusions: readonly WindowLayoutRect[],
+): number {
+  let clearance = 0;
+  const rowRight = row.x + row.width;
+  for (const occlusion of occlusions) {
+    const overlapsVertically =
+      row.y < occlusion.y + occlusion.height && occlusion.y < row.y + row.height;
+    const overlapsHorizontally = occlusion.x < rowRight && row.x < occlusion.x + occlusion.width;
+    if (overlapsVertically && overlapsHorizontally) {
+      clearance = Math.max(clearance, rowRight - occlusion.x);
+    }
+  }
+  return Math.ceil(clearance);
+}
+
+/**
  * The window's measured bars replace the rectangular safe area: the bottom bar's clearance,
  * and the top bar's start when it sits above the system top.
  */
