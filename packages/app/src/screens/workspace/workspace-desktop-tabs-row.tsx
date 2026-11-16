@@ -296,6 +296,7 @@ function WorkspacePaneToolbarActions({
   onSplitUp,
   onTogglePaneMaximized,
   tabSwitcher,
+  trailingAction,
 }: {
   panePanelKinds: PanePanelKinds;
   host: PaneHost;
@@ -313,6 +314,7 @@ function WorkspacePaneToolbarActions({
   onSplitUp?: () => void;
   onTogglePaneMaximized?: () => void;
   tabSwitcher?: React.ReactNode;
+  trailingAction?: React.ReactNode;
 }) {
   const { t } = useTranslation();
   const splitRightKeys = useShortcutKeys("workspace-pane-split-right");
@@ -335,7 +337,8 @@ function WorkspacePaneToolbarActions({
     [splitDownKeys],
   );
   const maximizeActionVisible = showMaximizeAction && Boolean(onTogglePaneMaximized);
-  if (!showNewTabButton && !splitActionsVisible && !maximizeActionVisible && !tabSwitcher) {
+  const hasAccessories = Boolean(tabSwitcher || trailingAction);
+  if (!showNewTabButton && !splitActionsVisible && !maximizeActionVisible && !hasAccessories) {
     return null;
   }
 
@@ -424,6 +427,7 @@ function WorkspacePaneToolbarActions({
           </DropdownMenuContent>
         </DropdownMenu>
       ) : null}
+      {trailingAction}
     </ToolbarControls>
   );
 }
@@ -614,6 +618,8 @@ export interface WorkspaceDesktopTabsRowProps {
   onMoveTabToPane?: (tabId: string, paneId: string) => void;
   /** Fork: the compact tab-count switcher, shown in the toolbar on native wide layouts. */
   tabSwitcher?: React.ReactNode;
+  /** Fork: an extra control at the end of the toolbar (the top bar toggle). */
+  trailingAction?: React.ReactNode;
   focusModeEnabled: boolean;
   onExitFocusMode: () => void;
 }
@@ -1159,6 +1165,7 @@ function ResolvedWorkspaceDesktopTabsRow({
   paneMoveTargets,
   onMoveTabToPane,
   tabSwitcher,
+  trailingAction,
   focusModeEnabled,
   onExitFocusMode,
 }: ResolvedWorkspaceDesktopTabsRowProps) {
@@ -1573,6 +1580,7 @@ function ResolvedWorkspaceDesktopTabsRow({
         onSplitUp={onSplitUp}
         onTogglePaneMaximized={onTogglePaneMaximized}
         tabSwitcher={tabSwitcher}
+        trailingAction={trailingAction}
       />
     </View>
   );

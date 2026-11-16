@@ -723,6 +723,8 @@ export const ptBR: TranslationResources = {
         splitDown: "Dividir painel abaixo",
         splitLeft: "Split pane left",
         splitUp: "Split pane up",
+        hideTopBar: "Hide top bar",
+        showTopBar: "Show top bar",
         changes: "Alterações",
         files: "Arquivos",
         pullRequest: "Pull request",

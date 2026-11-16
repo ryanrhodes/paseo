@@ -64,6 +64,7 @@ import type { WorkspaceTab } from "@/workspace-tabs/model";
 import { recordRenderProfileReasons, RenderProfile } from "@/utils/render-profiler";
 import { isNative } from "@/constants/platform";
 import { findAdjacentPane } from "@/utils/split-navigation";
+import { TopBarToggleButton, useTopBarToggleAvailable } from "@/screens/workspace/top-bar-toggle";
 import type { PaneDirection, PaneMoveTarget } from "@/screens/workspace/workspace-tab-menu";
 
 const PANE_DIRECTIONS: readonly PaneDirection[] = ["left", "right", "up", "down"];
@@ -798,6 +799,15 @@ const SplitPaneView = memo(function SplitPaneView({
     [onSplitPaneEmpty, paneId],
   );
   const paneMoveTargets = useMemo(() => getPaneMoveTargets(paneId), [getPaneMoveTargets, paneId]);
+  // Fork: the top bar toggle lives in the top-right pane, the one nearest the status items.
+  const topBarToggleAvailable = useTopBarToggleAvailable();
+  const ownsTopBarToggle =
+    topBarToggleAvailable &&
+    !paneMoveTargets.some((target) => target.direction === "right" || target.direction === "up");
+  const topBarToggle = useMemo(
+    () => (ownsTopBarToggle ? <TopBarToggleButton /> : null),
+    [ownsTopBarToggle],
+  );
   const handleTogglePaneMaximized = useCallback(
     () => onTogglePaneMaximized(paneId),
     [onTogglePaneMaximized, paneId],
@@ -927,6 +937,7 @@ const SplitPaneView = memo(function SplitPaneView({
                 paneMoveTargets={paneMoveTargets}
                 onMoveTabToPane={onMoveTabToPane}
                 tabSwitcher={paneTabSwitcher}
+                trailingAction={topBarToggle}
                 focusModeEnabled={Boolean(focusModeEnabled)}
                 onExitFocusMode={onExitFocusMode}
               />

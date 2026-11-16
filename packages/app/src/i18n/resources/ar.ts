@@ -718,6 +718,8 @@ export const ar: TranslationResources = {
         splitDown: "تقسيم الجزء لأسفل",
         splitLeft: "Split pane left",
         splitUp: "Split pane up",
+        hideTopBar: "Hide top bar",
+        showTopBar: "Show top bar",
         changes: "التغييرات",
         files: "الملفات",
         pullRequest: "طلب السحب",

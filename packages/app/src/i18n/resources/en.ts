@@ -717,6 +717,8 @@ export const en = {
         splitDown: "Split pane down",
         splitLeft: "Split pane left",
         splitUp: "Split pane up",
+        hideTopBar: "Hide top bar",
+        showTopBar: "Show top bar",
         changes: "Changes",
         files: "Files",
         pullRequest: "Pull request",

@@ -113,6 +113,7 @@ import { useOpenProject } from "@/hooks/use-open-project";
 import { useAppSettings } from "@/hooks/use-settings";
 import { useOpenAgentListGesture } from "@/mobile-panels/gestures";
 import { useDockSidebarSwipeGesture } from "@/mobile-panels/dock-swipe-gesture";
+import { TopBarStatusBar } from "@/screens/workspace/top-bar-toggle";
 import { MobilePanelsProvider, useIsMobilePanelActive } from "@/mobile-panels/provider";
 import {
   KeyboardActionDispatcherProvider,
@@ -710,6 +711,7 @@ function ProvidersWrapper({ children }: { children: ReactNode }) {
         <OfferLinkListener />
         <HostSessionManager />
         <FaviconStatusSync />
+        <TopBarStatusBar />
         {children}
       </VoiceProvider>
     </AppearanceProvider>

@@ -188,6 +188,11 @@ import {
 } from "@/workspace-tabs/agent-visibility";
 import { deriveWorkspacePaneState } from "@/screens/workspace/workspace-pane-state";
 import {
+  TopBarToggleButton,
+  useTopBarHidden,
+  useTopBarToggleAvailable,
+} from "@/screens/workspace/top-bar-toggle";
+import {
   buildWorkspacePaneContentModel,
   WorkspacePaneContent,
   type WorkspacePaneContentModel,
@@ -3444,9 +3449,16 @@ function WorkspaceScreenContent({
     ],
   );
 
+  // Fork: the top bar toggle hides this header (and the status bar) for more vertical space.
+  const topBarHidden = useTopBarHidden();
+  const topBarToggleAvailable = useTopBarToggleAvailable();
   const showScreenHeader = useMemo(
-    () => shouldShowWorkspaceScreenHeader({ isFocusModeEnabled, isMobile }),
-    [isFocusModeEnabled, isMobile],
+    () => !topBarHidden && shouldShowWorkspaceScreenHeader({ isFocusModeEnabled, isMobile }),
+    [isFocusModeEnabled, isMobile, topBarHidden],
+  );
+  const fallbackTopBarToggle = useMemo(
+    () => (topBarToggleAvailable ? <TopBarToggleButton /> : null),
+    [topBarToggleAvailable],
   );
   const renderExplorerSidebarHeaderAction = useCallback(
     () => (
@@ -3887,6 +3899,7 @@ function WorkspaceScreenContent({
                     onReorderTabs={handleReorderTabsInFocusedPane}
                     {...fallbackSplitProps}
                     tabSwitcher={fallbackTabSwitcher}
+                    trailingAction={fallbackTopBarToggle}
                     focusModeEnabled={desktopFocusModeEnabled}
                     onExitFocusMode={toggleFocusMode}
                   />

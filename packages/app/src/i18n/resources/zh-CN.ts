@@ -718,6 +718,8 @@ export const zhCN: TranslationResources = {
         splitDown: "向下拆分窗格",
         splitLeft: "Split pane left",
         splitUp: "Split pane up",
+        hideTopBar: "Hide top bar",
+        showTopBar: "Show top bar",
         changes: "更改",
         files: "文件",
         pullRequest: "拉取请求",

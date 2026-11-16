@@ -725,6 +725,8 @@ export const ru: TranslationResources = {
         splitDown: "Разделить панель снизу",
         splitLeft: "Split pane left",
         splitUp: "Split pane up",
+        hideTopBar: "Hide top bar",
+        showTopBar: "Show top bar",
         changes: "Изменения",
         files: "Файлы",
         pullRequest: "PR",

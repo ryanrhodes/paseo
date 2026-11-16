@@ -720,6 +720,8 @@ export const ko: TranslationResources = {
         splitDown: "창을 아래로 분할",
         splitLeft: "Split pane left",
         splitUp: "Split pane up",
+        hideTopBar: "Hide top bar",
+        showTopBar: "Show top bar",
         changes: "변경 사항",
         files: "파일",
         pullRequest: "풀 리퀘스트",

@@ -725,6 +725,8 @@ export const ja: TranslationResources = {
         splitDown: "下にペインを分割",
         splitLeft: "Split pane left",
         splitUp: "Split pane up",
+        hideTopBar: "Hide top bar",
+        showTopBar: "Show top bar",
         changes: "変更",
         files: "ファイル",
         pullRequest: "プルリクエスト",

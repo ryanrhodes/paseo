@@ -725,6 +725,8 @@ export const fr: TranslationResources = {
         splitDown: "Diviser le panneau vers le bas",
         splitLeft: "Split pane left",
         splitUp: "Split pane up",
+        hideTopBar: "Hide top bar",
+        showTopBar: "Show top bar",
         changes: "Modifications",
         files: "Fichiers",
         pullRequest: "Pull request",
