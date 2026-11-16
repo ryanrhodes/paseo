@@ -122,6 +122,9 @@ export default {
       infoPlist: {
         NSMicrophoneUsageDescription: "This app needs access to the microphone for voice commands.",
         ITSAppUsesNonExemptEncryption: false,
+        // Fork: the top bar toggle hides the status bar through prefersStatusBarHidden
+        // (modules/paseo-window-layout); the app-wide API has no effect in a scene-based app.
+        UIViewControllerBasedStatusBarAppearance: true,
       },
       bundleIdentifier: variant.packageId,
       ...(variant.appleTeamId ? { appleTeamId: variant.appleTeamId } : {}),

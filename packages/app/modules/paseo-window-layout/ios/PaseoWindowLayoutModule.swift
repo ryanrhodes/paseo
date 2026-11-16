@@ -5,14 +5,66 @@ public final class PaseoWindowLayoutModule: Module {
   public func definition() -> ModuleDefinition {
     Name("PaseoWindowLayout")
     OnCreate {
+      DispatchQueue.main.async { StatusBarPreference.install() }
       #if compiler(>=6.4)
       if #available(iOS 27.1, *) {
         DispatchQueue.main.async { VerticalBarPreference.install() }
       }
       #endif
     }
+    Function("setStatusBarHidden") { (hidden: Bool) in
+      DispatchQueue.main.async { StatusBarPreference.setHidden(hidden) }
+    }
     View(WindowLayoutView.self) {
       Events("onGeometryChange")
+    }
+  }
+}
+
+/// Fork: hides the status bar (time, signal, Live Activities) the way Safari does, through the
+/// view controllers' `prefersStatusBarHidden`. The app-wide `UIApplication` status bar API that
+/// React Native's StatusBar uses has no effect in a scene-based app, so Info.plist sets
+/// `UIViewControllerBasedStatusBarAppearance` and every controller reports this one flag.
+enum StatusBarPreference {
+  private static var installed = false
+  private static var hidden = false
+
+  static func install() {
+    guard !installed else { return }
+    installed = true
+    replaceGetter(#selector(getter: UIViewController.prefersStatusBarHidden)) {
+      (_: UIViewController) -> Bool in StatusBarPreference.hidden
+    }
+    let animation: @convention(block) (UIViewController) -> UIStatusBarAnimation = { _ in .slide }
+    if let method = class_getInstanceMethod(
+      UIViewController.self, #selector(getter: UIViewController.preferredStatusBarUpdateAnimation))
+    {
+      method_setImplementation(method, imp_implementationWithBlock(animation))
+    }
+  }
+
+  private static func replaceGetter(
+    _ selector: Selector, _ block: @escaping @convention(block) (UIViewController) -> Bool
+  ) {
+    guard let method = class_getInstanceMethod(UIViewController.self, selector) else { return }
+    method_setImplementation(method, imp_implementationWithBlock(block))
+  }
+
+  static func setHidden(_ value: Bool) {
+    install()
+    guard value != hidden else { return }
+    hidden = value
+    UIView.animate(withDuration: 0.25) {
+      for scene in UIApplication.shared.connectedScenes {
+        guard let windowScene = scene as? UIWindowScene else { continue }
+        for window in windowScene.windows {
+          var controller = window.rootViewController
+          while let current = controller {
+            current.setNeedsStatusBarAppearanceUpdate()
+            controller = current.presentedViewController
+          }
+        }
+      }
     }
   }
 }
