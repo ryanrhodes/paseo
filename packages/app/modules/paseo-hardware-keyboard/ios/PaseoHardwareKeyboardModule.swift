@@ -180,9 +180,10 @@ public final class PaseoHardwareKeyboardWindow: UIWindow {
   }
   public override var keyCommands: [UIKeyCommand]? {
     var commands = super.keyCommands ?? []
-    if isHardwareSubmitEnabled && !isPlainReturnClaimed && !isComposingText()
-      && UIDevice.current.userInterfaceIdiom == .pad
-    {
+    // Fork: hardware Return submits on iPhone too (e.g. a keyboard paired with the iPhone Duo).
+    // Key commands only fire for hardware presses, so the on-screen Return key is unchanged, and
+    // Shift+Return doesn't match this unmodified command, so it still inserts a newline.
+    if isHardwareSubmitEnabled && !isPlainReturnClaimed && !isComposingText() {
       commands.append(makeSubmitCommand())
     }
     if !isComposingText() {
