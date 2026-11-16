@@ -35,12 +35,33 @@ enum StatusBarPreference {
     replaceGetter(#selector(getter: UIViewController.prefersStatusBarHidden)) {
       (_: UIViewController) -> Bool in StatusBarPreference.hidden
     }
+    // react-native-screens routes the status bar question to its own RNSScreen controllers,
+    // which answer from their per-screen setting; React Native's modal controller does the same.
+    // Their own answers still apply while the top bar is shown.
+    for name in ["RNSScreen", "RCTModalHostViewController"] {
+      if let screenClass = NSClassFromString(name) { wrapHiddenGetter(screenClass) }
+    }
     let animation: @convention(block) (UIViewController) -> UIStatusBarAnimation = { _ in .slide }
     if let method = class_getInstanceMethod(
       UIViewController.self, #selector(getter: UIViewController.preferredStatusBarUpdateAnimation))
     {
       method_setImplementation(method, imp_implementationWithBlock(animation))
     }
+  }
+
+  /// Makes a class's own `prefersStatusBarHidden` also return true while the top bar is hidden.
+  private static func wrapHiddenGetter(_ targetClass: AnyClass) {
+    let selector = #selector(getter: UIViewController.prefersStatusBarHidden)
+    guard let method = class_getInstanceMethod(targetClass, selector),
+      let superMethod = class_getInstanceMethod(class_getSuperclass(targetClass), selector),
+      method_getImplementation(method) != method_getImplementation(superMethod)
+    else { return }  // inherits the base getter, which already reports the flag
+    typealias Getter = @convention(c) (AnyObject, Selector) -> Bool
+    let original = unsafeBitCast(method_getImplementation(method), to: Getter.self)
+    let wrapped: @convention(block) (AnyObject) -> Bool = { controller in
+      StatusBarPreference.hidden || original(controller, selector)
+    }
+    method_setImplementation(method, imp_implementationWithBlock(wrapped))
   }
 
   private static func replaceGetter(
