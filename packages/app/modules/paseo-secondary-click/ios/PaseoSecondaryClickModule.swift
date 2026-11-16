@@ -63,6 +63,15 @@ public class PaseoSecondaryClickModule: Module {
 
 /// Never block other recognizers (scroll views, React Native's touch handler).
 private final class SimultaneousDelegate: NSObject, UIGestureRecognizerDelegate {
+  /// `buttonMaskRequired` only applies to indirect pointer input; a finger tap still recognizes.
+  /// Only trackpad / mouse clicks may count as secondary clicks.
+  func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+    if #available(iOS 13.4, *) {
+      return touch.type == .indirectPointer
+    }
+    return false
+  }
+
   func gestureRecognizer(
     _ gestureRecognizer: UIGestureRecognizer,
     shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
