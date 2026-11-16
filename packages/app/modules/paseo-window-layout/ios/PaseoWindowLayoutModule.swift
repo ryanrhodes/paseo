@@ -4,11 +4,50 @@ import UIKit
 public final class PaseoWindowLayoutModule: Module {
   public func definition() -> ModuleDefinition {
     Name("PaseoWindowLayout")
+    OnCreate {
+      #if compiler(>=6.4)
+      if #available(iOS 27.1, *) {
+        DispatchQueue.main.async { VerticalBarPreference.install() }
+      }
+      #endif
+    }
     View(WindowLayoutView.self) {
       Events("onGeometryChange")
     }
   }
 }
+
+#if compiler(>=6.4)
+/// Fork: like Safari, give up the vertical bar at regular width (the unfolded iPhone Duo) so the
+/// status items return to a horizontal status bar at the top instead of a side column. Compact
+/// widths (the folded outer display) keep the bar, which Paseo uses for its workspace actions.
+/// The root view controller is created by Expo, so the preference is installed on
+/// UIViewController itself rather than in a subclass.
+@available(iOS 27.1, *)
+enum VerticalBarPreference {
+  private static var installed = false
+
+  static func install() {
+    guard !installed else { return }
+    installed = true
+    let selector = #selector(getter: UIViewController.preferredVerticalBarBehavior)
+    guard let method = class_getInstanceMethod(UIViewController.self, selector) else { return }
+    let behavior: @convention(block) (UIViewController) -> UIVerticalBarBehavior = { controller in
+      controller.traitCollection.horizontalSizeClass == .regular ? .disabled : .automatic
+    }
+    method_setImplementation(method, imp_implementationWithBlock(behavior))
+  }
+
+  /// Asks the window's controllers to re-resolve, e.g. after folding or unfolding.
+  static func refresh(_ window: UIWindow?) {
+    var controller = window?.rootViewController
+    while let current = controller {
+      current.setNeedsUpdateOfVerticalBarConfiguration()
+      controller = current.presentedViewController
+    }
+  }
+}
+#endif
 
 final class WindowLayoutView: ExpoView {
   let onGeometryChange = EventDispatcher()
@@ -32,12 +71,20 @@ final class WindowLayoutView: ExpoView {
         view.setNeedsUpdateConstraints()
         view.scheduleUpdate()
       }
+      registerForTraitChanges([UITraitHorizontalSizeClass.self]) { (view: WindowLayoutView, _) in
+        VerticalBarPreference.refresh(view.window)
+      }
     }
     #endif
   }
 
   override func didMoveToWindow() {
     super.didMoveToWindow()
+    #if compiler(>=6.4)
+    if #available(iOS 27.1, *) {
+      VerticalBarPreference.refresh(window)
+    }
+    #endif
     previousPayload = nil
     bottomBarGuide = nil
     topBarGuide = nil
